@@ -99,4 +99,17 @@ class FilterTickerDict(Base):
     description: Mapped[str] = mapped_column(String)
 
 
+class AnalysisTiker(Base):
+    """ИНФОРМАЦИЮ О ПРОДАЖЕ И ЗАПИСЫВАЕТ В SQL salesinform"""
+    __tablename__ = 'analysis_tiker'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tiker: Mapped[str] = mapped_column(String)
+    price_mean: Mapped[str] = mapped_column(String)
+    volume_mean: Mapped[str] = mapped_column(String)
+    trade_sphere: Mapped[str] = mapped_column(String)
+    activity: Mapped[str] = mapped_column(String)
+    statistics: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(String)
+
+
 Base.metadata.create_all(bind=engine)

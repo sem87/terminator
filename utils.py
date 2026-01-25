@@ -29,7 +29,6 @@ telegtok = os.getenv("telegtokeng")
 groupt = os.getenv("groupt")
 api_iddd = os.getenv("api_iddd")
 
-
 # -----------СЛОВАРИ---------
 buy_day = {}
 buy_hour = {}
@@ -52,8 +51,8 @@ tiker_figi = {}
 #     "ALRS", "RUAL", "PRFN", "UGLD", "NSVZ", "RTKM", "CNTL", "TTLK", "VRSB", "PMSB", "KLSB", "LSNG", "IRAO", "DVEC",
 #     "UPRO", "MSRS", "MRKC", "MRKP", "MRKV", "MRKY", "T"]
 # Чем торгую
-tikers = ["SBER", "ROSN", "SNGS", "TATN", "RNFT", "SIBN", "NVTK", "GAZP", "VTBR", "EUTR", "FLOT", "HEAD",
-          "ASTR", "SMLT", "LSRG", "PIKK", "ALRS", "RUAL"]
+# tikers = ["SBER", "ROSN", "SNGS", "TATN", "RNFT", "SIBN", "NVTK", "GAZP", "VTBR", "EUTR", "FLOT", "HEAD",
+#           "ASTR", "SMLT", "LSRG", "PIKK", "ALRS", "RUAL", "PLZL", "SELG", "GMKN"]
 
 
 # -------------------РАБОТА С JSON И ПОДГОТОВКА СЛОВАРЕЙ-------------
@@ -130,9 +129,21 @@ def get_figi(cl, tiker: str):
         return None
 
 
-def save_all_json(cl, tikers: list):
+def list_active_tickers():
+    """ПОЛУЧАЕМ СПИСОК ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ"""
+    try:
+        active_tickers = session.query(AnalysisTiker.tiker).filter(AnalysisTiker.activity == "на рынке").all()
+        active_tickers = [row[0] for row in active_tickers]
+        # print(f"СПИСОК АКТИВНЫХ АКЦИЙ {active_tickers}")
+        return active_tickers
+    except Exception as e:
+        logger.info(f"list_active_tickers() - не получается достать ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ Exception as e : {e}")
+
+
+def save_all_json(cl):
     """СОХРАНЯЕТ В JSON "tiker":"figi" """
     try:
+        tikers = list_active_tickers()
         for tiker in tikers:
             tiker_figi[tiker] = get_figi(tiker=tiker, cl=cl)
         with open("tiker_figi.json", "w", encoding="utf-8") as f:
@@ -153,7 +164,7 @@ def last_modified_json(cl):
             delta = datetime.now() - datetime.fromtimestamp(last_modified)
             if delta >= timedelta(days=7):
                 inform.info(f"Обновляем ФИГИ в tiker_figi.json. Прошло {delta.days} дней!!!")
-                save_all_json(cl=cl, tikers=tikers)
+                save_all_json(cl=cl)
             else:
                 inform.info(f"Файл был изменён менее 7 дней. Прошло только {delta.days} дней!!! ВСЕ ОК.")
     except Exception as e:
