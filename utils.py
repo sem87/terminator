@@ -952,7 +952,7 @@ def send_telegram(tupl: tuple,
     """ОТПРАВЛЯЕТ В ТЕЛЕГРАММ НА ПОКУПКУ И ПРОДАЖУ"""
     try:
         with telegram_cl:
-            telegram_cl.send_message(group, f"-----НАЧАЛО : {datetime.now().strftime("%d.%m.%Y %H:%M")}-----")
+            telegram_cl.send_message(group, f"-----НАЧАЛО : {datetime.now().strftime('%d.%m.%Y %H:%M')}-----")
             if tupl[0]:
                 telegram_cl.send_message(group, f"✅ ПОКУПКА : <b>{tupl[0].keys()}</b>")
             time.sleep(1)

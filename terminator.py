@@ -53,6 +53,7 @@ if __name__ == "__main__":
         except Exception as e:
             logger.info(f"ОБЩАЯ ОШИБКА: Ex as e : {e}")
         # НАЧАЛО------ОТПРАВКА ТЕЛЕГРАММ------
+        print(f"ВНИМАНИЕ !!!!!!!1 - {tuple_buy_sell}")
         send_telegram(tupl=tuple_buy_sell)
         # КОНЕЦ------ОТПРАВКА ТЕЛЕГРАММ-------
         time.sleep(900)
