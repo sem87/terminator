@@ -1,0 +1,46 @@
+SELECT *
+FROM archivebuyinform;
+
+SELECT *
+FROM salesinform;
+
+
+SELECT *
+FROM buyinform
+WHERE quantity_buy<>0;
+
+
+--результаты за сегодня
+SELECT *
+FROM mytrade_results
+WHERE date_sale >= '2026-01-29' AND conclusion_trading = "убыток";
+--итого по дням
+SELECT DATE(date_sale),SUM(net_profit),SUM(percent_profit)
+FROM mytrade_results
+GROUP BY DATE(date_sale) ;
+
+
+--как сортируются tiker
+SELECT *
+FROM filter_ticker_dict
+WHERE date >= '2026-01-29' AND timeframe="day"; --AND strategy="3_buy_15_min) возраст SMA10 но боллинжер огранич"; --AND tiker="TATN"
+
+--все про компании
+SELECT *
+FROM analysis_tiker
+WHERE activity="на рынке";
+
+
+--АНАЛИЗ УБЫТКА ПОДРОБНЫЙ
+SELECT mytrade_results.tiker,mytrade_results.buy_price,mytrade_results.sale_price,mytrade_results.conclusion_trading,
+mytrade_results.net_profit,mytrade_results.percent_profit,strftime('%Y-%m-%d %H:%M:%S',mytrade_results.date_buy) AS "ЦЕНА BUY",
+strftime('%Y-%m-%d %H:%M:%S', filter_ticker_dict.date) AS "СКАНИРОВАНИЕ",filter_ticker_dict.timeframe,
+filter_ticker_dict.action,filter_ticker_dict.strategy,filter_ticker_dict.description
+FROM mytrade_results
+INNER JOIN filter_ticker_dict
+  ON strftime('%Y-%m-%d', mytrade_results.date_buy) = strftime('%Y-%m-%d', filter_ticker_dict.date)
+ AND mytrade_results.tiker = filter_ticker_dict.tiker
+WHERE mytrade_results.tiker="TATN" AND filter_ticker_dict.action="buy" AND strftime('%Y-%m-%d', filter_ticker_dict.date)="2026-01-29";
+
+
+

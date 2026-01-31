@@ -714,15 +714,15 @@ def resetting_stop_los(cl):  # , figi: str, tiker: str
                     # Функцию для определения цены стопа (уже существующего)
                     execution_price = price_active_stop_loss(cl=cl, figi=position.figi, tiker=position.ticker)
                     # УСЛОВИЯ ДЛЯ ПОДОДВИГАНИЯ СТОП-ЛОСА
-                    # если цена сейчас в диапазоне(1,002 до 1,004) то стоп-лос 1,0015
-                    if execution_price < price_rub * 1.003 < current_price < price_rub * 1.005:
-                        coeff_sl_price = Decimal(1.0015)
+                    # если цена сейчас в диапазоне(1,0022 до 1,004) то стоп-лос 1,0017 (шаг 0,0005)
+                    if execution_price < price_rub * 1.0022 < current_price < price_rub * 1.004:
+                        coeff_sl_price = Decimal(1.0017)
                         moving_stop_los(cl=cl, figi=position.figi, tiker=position.ticker,
                                         quantity=quantity_lots_new, price_rub=Decimal(price_rub),
                                         coeff_sl_price=coeff_sl_price, schag=schag)
-                        inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА БЕЗУБЫТОЧНОСТЬ (0,15%)")
+                        inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА БЕЗУБЫТОЧНОСТЬ (0,17%)")
                     # если цена сейчас в диапазоне(1,004 до 1,008) стоп-лос 1,003
-                    elif execution_price < price_rub * 1.005 <= current_price < price_rub * 1.008:
+                    elif execution_price < price_rub * 1.004 <= current_price < price_rub * 1.008:
                         coeff_sl_price = Decimal(1.003)
                         moving_stop_los(cl=cl, figi=position.figi, tiker=position.ticker,
                                         quantity=quantity_lots_new, price_rub=Decimal(price_rub),
