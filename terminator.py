@@ -18,9 +18,10 @@ if __name__ == "__main__":
                 # КОНЕЦ------ПРОВЕРКА-------
                 for tiker, figi in read_tiker_figi_json().items():
                     # Список день, час, 15мин
+                    # CANDLE_INTERVAL_5_MIN, CANDLE_INTERVAL_15_MIN
                     for time_list in [(CandleInterval.CANDLE_INTERVAL_DAY.value, 50),
                                       (CandleInterval.CANDLE_INTERVAL_HOUR, 7),
-                                      (CandleInterval.CANDLE_INTERVAL_15_MIN, 1)]:
+                                      (CandleInterval.CANDLE_INTERVAL_5_MIN, 1)]:
                         tuple_indicator = calculate_indicator(
                             df=candl(cl=cl, day=time_list[1], interval=time_list[0], tiker=tiker, figi=figi),
                             tiker=tiker)
