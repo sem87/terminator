@@ -57,4 +57,4 @@ if __name__ == "__main__":
         print(f"ВНИМАНИЕ !!!!!!!1 - {tuple_buy_sell}")
         send_telegram(tupl=tuple_buy_sell)
         # КОНЕЦ------ОТПРАВКА ТЕЛЕГРАММ-------
-        time.sleep(900)
+        time.sleep(530)
