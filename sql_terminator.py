@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Float, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Float, UniqueConstraint, select, \
+    func
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, backref, mapped_column, relationship, sessionmaker
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
@@ -108,8 +109,10 @@ class AnalysisTiker(Base):
     volume_mean: Mapped[str] = mapped_column(String)
     trade_sphere: Mapped[str] = mapped_column(String)
     activity: Mapped[str] = mapped_column(String)
+    win_rate: Mapped[float] = mapped_column(Float)
     statistics: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
+
 
 
 Base.metadata.create_all(bind=engine)
