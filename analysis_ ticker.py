@@ -13,7 +13,7 @@ tiktok = ["SBER", "ROSN", "LKOH", "ZAYM", "SNGS", "TATN", "BANE", "ELFV", "SLAV"
           "MSTT", "EUTR", "KMAZ", "FLOT", "FESH", "UWGN", "NMTP", "ABIO", "HEAD", "ASTR", "DELI", "LEAS", "KZIZ",
           "SMLT", "LSRG", "PIKK", "TGKJ", "VSMO", "PLZL", "AKRN", "LNZL", "CHMK", "PHOR", "CHMF", "KAZT", "ENPG",
           "NLMK", "GMKN", "NKNC", "KZOS", "MRKZ", "ALRS", "RUAL", "PRFN", "UGLD", "NSVZ", "RTKM", "CNTL", "TTLK",
-          "VRSB", "PMSB", "KLSB", "LSNG", "IRAO", "DVEC", "UPRO", "MSRS", "MRKC", "MRKP", "MRKV", "MRKY", "T", "SELG"]
+          "VRSB", "PMSB", "KLSB", "LSNG", "IRAO", "DVEC", "UPRO", "MSRS", "MRKC", "MRKP", "MRKV", "MRKY", "T", "SELG","ASTR"]
 # tikers = "SBER"
 activity = "закрыто"
 description = "vvv"
@@ -24,7 +24,7 @@ def add_line(tikers, price_mean, volume_mean, trade_sphere, activity, statistics
     """ДОБАВЛЯЕМ В БАЗУ analysis_tiker"""
     strok = session.query(AnalysisTiker.tiker).filter(AnalysisTiker.tiker == tikers).first()
     if strok:
-        print(f"В базе {tikers} уже есть .Обновим данные")
+        print(f"В базе {tikers} уже есть. Обновим данные")
         # Обновим данные
         update = session.query(AnalysisTiker).filter(AnalysisTiker.tiker == tikers).first()
         update.price_mean = price_mean
@@ -80,8 +80,6 @@ def statistics_win_rate(tikers):
             win_rate = 0
         else:
             win_rate = round((results_profit[1] / (results_lesion[1] + results_profit[1])) * 100, 2)
-        print(win_rate)
-        print(statistics)
     except:
         print("ошибка statistics")
     return statistics, win_rate
@@ -91,11 +89,11 @@ def sector_trade(tikers, cl):
     """Узнает в каком секторе тикер"""
     sector_mapping = {"financial": "Банки / Финансы", "energy": "Нефтегаз / Энергетика",
                       "materials": "Металлы / Горнодобыча", "industrials": "Промышленность",
-                      "consumer_discretionary": "Потребительские товары", "consumer_staples": "Ритейл / Продукты",
-                      "healthcare": "Медицина / Фарма", "information_technology": "IT / Технологии",
-                      "telecommunications": "Телеком", "utilities": "Коммунальные услуги",
+                      "consumer": "Потребительские товары", "consumer_staples": "Ритейл / Продукты",
+                      "health_care": "Медицина / Фарма", "it": "IT / Технологии",
+                      "telecom": "Телеком", "utilities": "Коммунальные услуги",
                       "real_estate": "Недвижимость", "": "Не определён", "other": "Прочее"}
-    trade_sphere = "не определён"
+    trade_sphere = "значение по умолчанию"
     try:
         # Получаем все акции рынка
         shares = cl.instruments.shares().instruments
@@ -110,11 +108,10 @@ def sector_trade(tikers, cl):
         # Теперь можем запросить детали с правильным class_code
         share = cl.instruments.share_by(id=tikers, class_code=target.class_code,
                                         id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_TICKER).instrument
-        trade_sphere_eng = getattr(share, 'sector', '').strip() or "не определён"
+        trade_sphere_eng = getattr(share, 'sector', '').strip()   # or "не определён"
         trade_sphere = sector_mapping[trade_sphere_eng]
-        print(f"Сектор {tikers} ({target.class_code}): {trade_sphere}")
-    except:
-        print("ошибка в sector_trade")
+    except Exception as e:
+        print(f"ошибка в sector_trade - {e}")
     return trade_sphere
 
 
@@ -123,8 +120,6 @@ if __name__ == "__main__":
     НУЖНО ЧТОБЫ ВЫВОДИЛСЯ ИТОГОВЫЙ СПИСОК С ТИКЕРАМИ АКТИВНЫМИ"""
     for tikers in tiktok:
         with Client(token) as cl:
-
-
             # Узнаем из тикера фиги
             figs = get_figi(tiker=tikers, cl=cl)
             tuple_mean = calculate_mean_param(
