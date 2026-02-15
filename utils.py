@@ -43,20 +43,6 @@ sale_itog = {}
 tiker_figi = {}
 
 
-# Полный список
-# tikers = [
-#     "SBER", "ROSN", "LKOH", "ZAYM", "SNGS", "TATN", "BANE", "ELFV", "SLAV", "YAKG", "RNFT", "SIBN", "TGKN", "NVTK",
-#     "GAZP", "MOEX", "MBNK", "BSPB", "SPBE", "ZAYM", "RENI", "VTBR", "SVCB", "CBOM", "MGKL", "CARM", "MGNT", "GCHE",
-#     "KROT", "LENT", "SVAV", "AQUA", "HNFG", "BELU", "ABRD", "OKEY", "NKHP", "GTRK", "WUSH", "MSTT", "EUTR", "KMAZ",
-#     "FLOT", "FESH", "UWGN", "NMTP", "ABIO", "HEAD", "ASTR", "DELI", "LEAS", "KZIZ", "SMLT", "LSRG", "PIKK", "TGKJ",
-#     "VSMO", "PLZL", "AKRN", "LNZL", "CHMK", "PHOR", "CHMF", "KAZT", "ENPG", "NLMK", "GMKN", "NKNC", "KZOS", "MRKZ",
-#     "ALRS", "RUAL", "PRFN", "UGLD", "NSVZ", "RTKM", "CNTL", "TTLK", "VRSB", "PMSB", "KLSB", "LSNG", "IRAO", "DVEC",
-#     "UPRO", "MSRS", "MRKC", "MRKP", "MRKV", "MRKY", "T"]
-# Чем торгую
-# tikers = ["SBER", "ROSN", "SNGS", "TATN", "RNFT", "SIBN", "NVTK", "GAZP", "VTBR", "EUTR", "FLOT", "HEAD",
-#           "ASTR", "SMLT", "LSRG", "PIKK", "ALRS", "RUAL", "PLZL", "SELG", "GMKN"]
-
-
 # -------------------РАБОТА С JSON И ПОДГОТОВКА СЛОВАРЕЙ-------------
 def read_tiker_figi_json() -> dict:
     """ЧИТАЕТ ДАННЫЕ ИЗ tiker_figi_json"""
@@ -269,9 +255,9 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             timeframe = "day"
             # ПОКУПКА
             # 1_buy_day) возраст SMA 10.RSI<65 MACD _-'   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (prev_rsi_3 < last_rsi < 65) and (prev_MACD<last_MACD)
+            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (prev_rsi < last_rsi < 65) and (prev_MACD<last_MACD)
             if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[2] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
+                    tuple_indicator[1] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
                 """ВОЗРОСТАНИЕ SMA 10 , RSI, MACD"""
                 buy_day[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -307,9 +293,9 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             #     session.add(filter_tiker)
             #     session.commit()
             # 1_sell_day) убывающий SMA 10.RSI>35 '-_   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (50<last_rsi<prev_rsi_3) and (last_MACD<prev_MACD)
+            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (50<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
             elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    35 < tuple_indicator[0] < tuple_indicator[2]) and (tuple_indicator[4] < tuple_indicator[5]):
+                    35 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
                 """УБЫВАЮЩИЙ SMA 10 , RSI, MACD '-_"""
                 sale_day[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
@@ -325,9 +311,9 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             timeframe = "hour"
             # ПОКУПКА
             # 1_buy_hour) возраст SMA10 RSI < 65 MACD .-'
-            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi_3<last_rsi<65) and (prev_MACD<last_MACD)
+            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<65) and (prev_MACD<last_MACD)
             if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[2] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
+                    tuple_indicator[1] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
                 """ВОЗРОСТАНИЕ SMA 10 , RSI, MACD"""
                 buy_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -337,9 +323,9 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # ПРОДАЖА
             # 1_sell_hour) убывающий SMA10 и RSI > 35 '-.
-            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (35<last_rsi<prev_rsi_3) and (last_MACD<prev_MACD)
+            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (35<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
             elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    35 < tuple_indicator[0] < tuple_indicator[2]) and (tuple_indicator[4] < tuple_indicator[5]):
+                    35 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
                 """УБЫВАЮЩИЙ SMA 10 , RSI, MACD '-_"""
                 sale_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
@@ -356,10 +342,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             # ПОКУПКА
             # 1_buy_5_min) нижняя т MACD. -_-'
             # (цена закрытия < средняя боллинджера) and (prev_MACD_3 < prev_MACD_4) and
-            # (prev_MACD_3<prev_MACD<last_MACD<0) and (prev_rsi_3<last_rsi<50)
+            # (prev_MACD_3<prev_MACD<last_MACD<0) and (prev_rsi<last_rsi<50)
             if ((tuple_indicator[12] < tuple_indicator[13]) and (tuple_indicator[6] < tuple_indicator[7]) and (
                     tuple_indicator[6] < tuple_indicator[5] < tuple_indicator[4] < 0) and (
-                    tuple_indicator[2] < tuple_indicator[0] < 50)):
+                    tuple_indicator[1] < tuple_indicator[0] < 50)):
                 "ОТБИРАЕМ В САМОМ НИЗУ 5 МИН"
                 buy_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -369,10 +355,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # 2_buy_5_min) возраст MACD. _-'
             # (цена закрытия < средняя боллинджера) and
-            # (prev_MACD_3<prev_MACD<last_MACD<0) and (prev_rsi_3<last_rsi<50)
+            # (prev_MACD_3<prev_MACD<last_MACD<0) and (prev_rsi<last_rsi<50)
             elif ((tuple_indicator[12] < tuple_indicator[13]) and (
                     tuple_indicator[6] < tuple_indicator[5] < tuple_indicator[4] < 0) and (
-                          tuple_indicator[2] < tuple_indicator[0] < 50)):
+                          tuple_indicator[1] < tuple_indicator[0] < 50)):
                 "ОТБИРАЕМ В САМОМ НИЗУ 5 МИН ПОСЛЕДУЮШИЕ СВЕЧИ MACD УВЕЛИЧИВАЮТСЯ НО <0"
                 buy_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -382,10 +368,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # 3_buy_5_min) возраст SMA10 но боллинжер огранич"   (но похоже это редкие случаи)
             # (цена закрытия < средняя боллинджера) and
-            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi_3<last_rsi<55)
+            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<55)
             elif ((tuple_indicator[12] < tuple_indicator[13]) and (
                     tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                          tuple_indicator[2] < tuple_indicator[0] < 55)):
+                          tuple_indicator[1] < tuple_indicator[0] < 55)):
                 "SMA 10 ВОЗРАСТАЕТ НО БОЛЛИНДЖЕР ОГРАНИЧИВАЕТ"
                 buy_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -394,9 +380,9 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.add(filter_tiker)
                 session.commit()
             # 4_buy_5_min) возраст SMA10 и rsi < 50. (ЕСЛИ УВЕЛИЧИВАТЬ ЭТО ЧИСЛО ТО МОЖЕТ МНОГО НЕУДАЧ!!)
-            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi_3<last_rsi<50)
+            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<50)
             elif (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[2] < tuple_indicator[0] < 50):
+                    tuple_indicator[1] < tuple_indicator[0] < 50):
                 "SMA 10 ВОЗРАСТАЕТ"
                 buy_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
@@ -404,13 +390,25 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
+            # 5_buy_5_min) нижняя т MACD. -_-
+            # (цена закрытия < средняя боллинджера) and (prev_MACD < prev_MACD_3) and
+            # (prev_MACD<last_MACD<0) and (prev_rsi<last_rsi<50)
+            elif ((tuple_indicator[12] < tuple_indicator[13]) and (tuple_indicator[5] < tuple_indicator[6]) and (
+                    tuple_indicator[5] < tuple_indicator[4] < 0) and (tuple_indicator[1] < tuple_indicator[0] < 50)):
+                "ОТБИРАЕМ В САМОМ НИЗУ 5 МИН ЭКСПЕРИМЕНТ"
+                buy_15min[tiker] = figi
+                filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
+                                                strategy=f"5_buy_{timeframe}) нижняя т MACD. -_-",
+                                                description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
+                session.add(filter_tiker)
+                session.commit()
             # ПРОДАЖА
             # 1_sell_5_min) верхняя т. MACD. -'-_
             # (средняя боллинджера < цена закрытия) and (prev_MACD_4 < prev_MACD_3) and
-            # (0<last_MACD<prev_MACD<prev_MACD_3) and (50<last_rsi<prev_rsi_3)
+            # (0<last_MACD<prev_MACD<prev_MACD_3) and (50<last_rsi<prev_rsi)
             elif ((tuple_indicator[13] < tuple_indicator[12]) and (tuple_indicator[7] < tuple_indicator[6]) and (
                     0 < tuple_indicator[4] < tuple_indicator[5] < tuple_indicator[6]) and (
-                          50 < tuple_indicator[0] < tuple_indicator[2])):
+                          50 < tuple_indicator[0] < tuple_indicator[1])):
                 "ОТБИРАЕМ В САМОМ ВЕРХУ 5 МИН"
                 sale_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
@@ -420,10 +418,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # 2_sell_5_min) убывающий MACD '-_
             # (средняя боллинджера < цена закрытия) and
-            # (0<last_MACD<prev_MACD<prev_MACD_3) and (50<last_rsi<prev_rsi_3)
+            # (0<last_MACD<prev_MACD<prev_MACD_3) and (50<last_rsi<prev_rsi)
             elif ((tuple_indicator[13] < tuple_indicator[12]) and (
                     0 < tuple_indicator[4] < tuple_indicator[5] < tuple_indicator[6]) and (
-                          50 < tuple_indicator[0] < tuple_indicator[2])):
+                          50 < tuple_indicator[0] < tuple_indicator[1])):
                 "ОТБИРАЕМ В САМОМ ВЕРХУ 5 МИН ПОСЛЕДУЮШИЕ СВЕЧИ MACD МОЖЕТ > 0"
                 sale_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
@@ -433,10 +431,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # 3_sell_5_min) убывающий SMA10 но боллинжер ограничивает."   (но похоже это редкие случаи)
             # (средняя боллинджера < цена закрытия) and
-            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (45<last_rsi<prev_rsi_3)
+            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (45<last_rsi<prev_rsi)
             elif ((tuple_indicator[13] < tuple_indicator[12]) and (
                     tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                          45 < tuple_indicator[0] < tuple_indicator[2])):
+                          45 < tuple_indicator[0] < tuple_indicator[1])):
                 "SMA 10 УБЫВАЕТ НО БОЛЛИНДЖЕР ОГРАНИЧИВАЕТ"
                 sale_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
@@ -445,13 +443,25 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.add(filter_tiker)
                 session.commit()
             # 4_sell_5_min) убывающий SMA10 и rsi > 60 (ЕСЛИ уменьшать ЭТО ЧИСЛО ТО МОЖЕТ МНОГО НЕУДАЧ!!!!)
-            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (50<last_rsi<prev_rsi_3)
+            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (50<last_rsi<prev_rsi)
             elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    50 < tuple_indicator[0] < tuple_indicator[2]):
+                    50 < tuple_indicator[0] < tuple_indicator[1]):
                 "SMA 10 УБЫВАЕТ"
                 sale_15min[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
                                                 strategy=f"4_sell_{timeframe}) убывающий SMA10 и rsi > 50",
+                                                description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
+                session.add(filter_tiker)
+                session.commit()
+            # 5_sell_5_min) верхняя т. MACD. -'-
+            # (средняя боллинджера < цена закрытия) and (prev_MACD_3 < prev_MACD) and
+            # (0<last_MACD<prev_MACD) and (50<last_rsi<prev_rsi)
+            elif ((tuple_indicator[13] < tuple_indicator[12]) and (tuple_indicator[6] < tuple_indicator[5]) and (
+                    0 < tuple_indicator[4] < tuple_indicator[5]) and (50 < tuple_indicator[0] < tuple_indicator[1])):
+                "ОТБИРАЕМ В САМОМ ВЕРХУ 5 МИН ЭКСПЕРИМЕНТ"
+                sale_15min[tiker] = figi
+                filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
+                                                strategy=f"5_sell_{timeframe}) верхняя т. MACD. -'-",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
@@ -722,7 +732,7 @@ def activ_pokupka(cl, figi: str, tiker: str):
                         """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
                         """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
                         # Стоп-лимит заявка (продажа при достижении take_profit_price)
-                        coeff_stop_loss_price = Decimal(0.9962)  # ВОЗМОЖНО ЕЩЕ УТОЧНИТЬ ЭТУ ЦИФРУ
+                        coeff_stop_loss_price = Decimal(0.9983)  # СДЕЛАЕМ W/R 1:1
                         cl.stop_orders.post_stop_order(
                             figi=figi,
                             quantity=quantity_lots_new,  # Количество лотов
@@ -1081,7 +1091,7 @@ def send_telegram(tupl: tuple,
             time.sleep(1)
             if tupl[1]:
                 telegram_cl.send_message(group, f"🔴 ПРОДАЖА : <b>{tupl[1].keys()}</b>")
-            end_time_str = (datetime.now() + timedelta(seconds=900)).strftime("%d.%m.%Y %H:%M")
+            end_time_str = (datetime.now() + timedelta(seconds=530)).strftime("%d.%m.%Y %H:%M")
             telegram_cl.send_message(group, f"-----СЛЕДУЮЩИЙ : {end_time_str}-----")
             telegram_cl.send_message(group, "🧠")
     except Exception as e:
