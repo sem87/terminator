@@ -255,13 +255,13 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             timeframe = "day"
             # ПОКУПКА
             # 1_buy_day) возраст SMA 10.RSI<65 MACD _-'   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (prev_rsi < last_rsi < 65) and (prev_MACD<last_MACD)
+            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (prev_rsi < last_rsi < 70) and (prev_MACD<last_MACD)
             if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[1] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
+                    tuple_indicator[1] < tuple_indicator[0] < 70) and (tuple_indicator[5] < tuple_indicator[4]):
                 """ВОЗРОСТАНИЕ SMA 10 , RSI, MACD"""
                 buy_day[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
-                                                strategy=f"1_buy_{timeframe}) возраст SMA 10.RSI<65 MACD _-'",
+                                                strategy=f"1_buy_{timeframe}) возраст SMA 10.RSI<70 MACD _-'",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
@@ -292,14 +292,14 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             #                                     description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
             #     session.add(filter_tiker)
             #     session.commit()
-            # 1_sell_day) убывающий SMA 10.RSI>35 '-_   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (50<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
+            # 1_sell_day) убывающий SMA 10.RSI>30 '-_   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
+            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (30<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
             elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    35 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
+                    30 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
                 """УБЫВАЮЩИЙ SMA 10 , RSI, MACD '-_"""
                 sale_day[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
-                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10.RSI>35 MACD'-_ ",
+                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10.RSI>30 MACD'-_ ",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
@@ -310,26 +310,26 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             """ЧАСОВОЙ ИНТЕРВАЛ УСЛОВИЕ"""
             timeframe = "hour"
             # ПОКУПКА
-            # 1_buy_hour) возраст SMA10 RSI < 65 MACD .-'
-            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<65) and (prev_MACD<last_MACD)
+            # 1_buy_hour) возраст SMA10 RSI < 70 MACD .-'
+            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<70) and (prev_MACD<last_MACD)
             if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[1] < tuple_indicator[0] < 65) and (tuple_indicator[5] < tuple_indicator[4]):
+                    tuple_indicator[1] < tuple_indicator[0] < 70) and (tuple_indicator[5] < tuple_indicator[4]):
                 """ВОЗРОСТАНИЕ SMA 10 , RSI, MACD"""
                 buy_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
-                                                strategy=f"1_buy_{timeframe}) возраст SMA 10.RSI<65 MACD _-'",
+                                                strategy=f"1_buy_{timeframe}) возраст SMA 10.RSI<70 MACD _-'",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
             # ПРОДАЖА
-            # 1_sell_hour) убывающий SMA10 и RSI > 35 '-.
+            # 1_sell_hour) убывающий SMA10 и RSI > 30 '-.
             # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (35<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
             elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    35 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
+                    30 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
                 """УБЫВАЮЩИЙ SMA 10 , RSI, MACD '-_"""
                 sale_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
-                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10.RSI>35 MACD'-_ ",
+                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10.RSI>30 MACD'-_ ",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
@@ -732,7 +732,7 @@ def activ_pokupka(cl, figi: str, tiker: str):
                         """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
                         """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
                         # Стоп-лимит заявка (продажа при достижении take_profit_price)
-                        coeff_stop_loss_price = Decimal(0.9983)  # СДЕЛАЕМ W/R 1:1
+                        coeff_stop_loss_price = Decimal(0.9966)  # СДЕЛАЕМ W/R 1:1 (0,34%)
                         cl.stop_orders.post_stop_order(
                             figi=figi,
                             quantity=quantity_lots_new,  # Количество лотов
@@ -835,19 +835,19 @@ def resetting_stop_los(cl):  # , figi: str, tiker: str
                     execution_price = price_active_stop_loss(cl=cl, figi=position.figi, tiker=position.ticker)
                     # УСЛОВИЯ ДЛЯ ПОДОДВИГАНИЯ СТОП-ЛОСА
                     # если цена сейчас в диапазоне(1,0022 до 1,004) то стоп-лос 1,0017 (шаг 0,0005)
-                    if execution_price < price_rub * 1.0022 < current_price < price_rub * 1.004:
-                        coeff_sl_price = Decimal(1.0017)
+                    # if execution_price < price_rub * 1.0022 < current_price < price_rub * 1.004:
+                    #     coeff_sl_price = Decimal(1.0017)
+                    #     moving_stop_los(cl=cl, figi=position.figi, tiker=position.ticker,
+                    #                     quantity=quantity_lots_new, price_rub=Decimal(price_rub),
+                    #                     coeff_sl_price=coeff_sl_price, schag=schag)
+                    #     inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА БЕЗУБЫТОЧНОСТЬ (0,17%)")
+                    # # если цена сейчас в диапазоне(1,004 до 1,008) стоп-лос 1,003
+                    if execution_price < price_rub * 1.0038 <= current_price < price_rub * 1.008:
+                        coeff_sl_price = Decimal(1.0034)
                         moving_stop_los(cl=cl, figi=position.figi, tiker=position.ticker,
                                         quantity=quantity_lots_new, price_rub=Decimal(price_rub),
                                         coeff_sl_price=coeff_sl_price, schag=schag)
-                        inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА БЕЗУБЫТОЧНОСТЬ (0,17%)")
-                    # если цена сейчас в диапазоне(1,004 до 1,008) стоп-лос 1,003
-                    elif execution_price < price_rub * 1.004 <= current_price < price_rub * 1.008:
-                        coeff_sl_price = Decimal(1.003)
-                        moving_stop_los(cl=cl, figi=position.figi, tiker=position.ticker,
-                                        quantity=quantity_lots_new, price_rub=Decimal(price_rub),
-                                        coeff_sl_price=coeff_sl_price, schag=schag)
-                        inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА (0,3%) ")
+                        inform.info(f"{position.ticker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА (0,34%) ")
                     # если цена сейчас в диапазоне(1,008 до 1,015) стоп-лос 1,007
                     elif execution_price < price_rub * 1.008 <= current_price < price_rub * 1.015:
                         coeff_sl_price = Decimal(1.007)
