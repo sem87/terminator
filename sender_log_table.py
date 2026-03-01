@@ -8,14 +8,14 @@ def send_telegram_log_db(
     try:
         with telegram_cl:
             telegram_cl.send_message(group, f"✌️")
-            telegram_cl.send_document(chat_id=group, document="sql_terminator.db",
-                                      caption="Файл базы данных")
-            time.sleep(2)
-            telegram_cl.send_document(chat_id=group, document="log/informing/inform.log",
-                                      caption="Информ лог")
-            time.sleep(2)
-            telegram_cl.send_document(chat_id=group, document="log/logs/loGgGi.log",
-                                      caption="Информ лог")
+            # telegram_cl.send_document(chat_id=group, document="sql_terminator.db",
+            #                           caption="Файл базы данных")
+            # time.sleep(2)
+            # telegram_cl.send_document(chat_id=group, document="log/informing/inform.log",
+            #                           caption="Информ лог")
+            # time.sleep(2)
+            # telegram_cl.send_document(chat_id=group, document="log/logs/loGgGi.log",
+            #                           caption="Информ лог")
     except Exception as e:
         logger.info(f"send_telegram_log_db ошибка в телеграмм логи и база: Ex as e : {e}")
 
