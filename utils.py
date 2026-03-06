@@ -310,26 +310,24 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             """ЧАСОВОЙ ИНТЕРВАЛ УСЛОВИЕ"""
             timeframe = "hour"
             # ПОКУПКА
-            # 1_buy_hour) возраст SMA10 RSI < 70 MACD .-'
-            # (last_sma_10_3<last_sma_10_2<last_sma_10_1) and (prev_rsi<last_rsi<70) and (prev_MACD<last_MACD)
-            if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
-                    tuple_indicator[1] < tuple_indicator[0] < 70) and (tuple_indicator[5] < tuple_indicator[4]):
-                """ВОЗРОСТАНИЕ SMA 10 , RSI, MACD"""
+            # 1_buy_hour) возраст SMA10
+            # last_sma_10_2<last_sma_10_1)
+            if tuple_indicator[9] < tuple_indicator[8]:
+                """ВОЗРОСТАНИЕ SMA 10 """
                 buy_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="buy",
-                                                strategy=f"1_buy_{timeframe}) возраст SMA 10.RSI<70 MACD _-'",
+                                                strategy=f"1_buy_{timeframe}) возраст SMA 10",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
             # ПРОДАЖА
-            # 1_sell_hour) убывающий SMA10 и RSI > 30 '-.
-            # (last_sma_10_1<last_sma_10_2<last_sma_10_3) and (35<last_rsi<prev_rsi) and (last_MACD<prev_MACD)
-            elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
-                    30 < tuple_indicator[0] < tuple_indicator[1]) and (tuple_indicator[4] < tuple_indicator[5]):
-                """УБЫВАЮЩИЙ SMA 10 , RSI, MACD '-_"""
+            # 1_sell_hour) убывающий SMA10
+            # (last_sma_10_1<last_sma_10_2
+            elif tuple_indicator[8] < tuple_indicator[9]:
+                """УБЫВАЮЩИЙ SMA 10 """
                 sale_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(tiker=tiker, timeframe=timeframe, action="sell",
-                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10.RSI>30 MACD'-_ ",
+                                                strategy=f"1_sell_{timeframe}) убывающий SMA 10",
                                                 description=f"last_MACD:{round(tuple_indicator[4], 2)}, last_rsi:{round(tuple_indicator[0], 2)}, midBoll:{round(tuple_indicator[13], 2)}")
                 session.add(filter_tiker)
                 session.commit()
