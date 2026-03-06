@@ -588,12 +588,12 @@ def select_dicts(buy_day: dict, buy_hour: dict, buy_15min: dict, sale_day: dict,
     try:
         # На покупку
         buy_itog_2 = {tiker: figi for tiker, figi in buy_day.items() if tiker in buy_15min}
-        buy_itog_3 = {tiker: figi for tiker, figi in buy_hour.items() if tiker in buy_15min}
-        buy_itog = {**buy_itog_2, **buy_itog_3}
+        # buy_itog_3 = {tiker: figi for tiker, figi in buy_hour.items() if tiker in buy_15min}
+        buy_itog = {tiker: figi for tiker, figi in buy_itog_2.items() if tiker in buy_hour}
         # На продажу
         sale_itog_2 = {tiker: figi for tiker, figi in sale_day.items() if tiker in sale_15min}
-        sale_itog_3 = {tiker: figi for tiker, figi in sale_hour.items() if tiker in sale_15min}
-        sale_itog = {**sale_itog_2, **sale_itog_3}
+        # sale_itog_3 = {tiker: figi for tiker, figi in sale_hour.items() if tiker in sale_15min}
+        sale_itog = {tiker: figi for tiker, figi in sale_itog_2.items() if tiker in sale_hour}
         inform.info(f"Buy день- {buy_day.keys()}")
         inform.info(f"Buy час- {buy_hour.keys()}")
         inform.info(f"Buy 15мин- {buy_15min.keys()}")
@@ -602,6 +602,9 @@ def select_dicts(buy_day: dict, buy_hour: dict, buy_15min: dict, sale_day: dict,
         inform.info(f"Sale час- {sale_hour.keys()}")
         inform.info(f"Sale 15мин- {sale_15min.keys()}")
         inform.info(f"Sale ИТОГО- {sale_itog.keys()}")
+        # Очистим промежуточные словари
+        buy_itog_2.clear()
+        sale_itog_2.clear()
         # Возвращает кортеж словарей
         return buy_itog, sale_itog  # Автоматически возвращает кортеж из 2х словарей
     except Exception as e:
