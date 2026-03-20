@@ -1,11 +1,13 @@
 import os
+import time
+from datetime import datetime, timedelta
 from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 from pyrogram import Client as TelegramClient
 from pyrogram.enums import ParseMode
 
-from log.logger import inform, logger
+from log.logger import logger
 
 
 """ДЛЯ ЧТЕНИЯ ТОКЕНА"""
@@ -34,7 +36,8 @@ def get_proxy_dict(proxy_url: str | None):
     }
 
 
-def send_telegram_log_db(
+def send_telegram(
+    tupl: tuple,
     telegram_cl,
     group=groupt,
 ):
@@ -43,24 +46,31 @@ def send_telegram_log_db(
     if proxy_url := os.getenv("PROXY_URL"):
         p = urlparse(proxy_url)
         login = f"{unquote(p.username)[:2]}****:" if p.username else ""
-        inform.info(f"Прокси: {p.scheme.upper()}://{login}****@{p.hostname}:{p.port}")
+        print(f"🌐 Прокси: {p.scheme.upper()}://{login}****@{p.hostname}:{p.port}")
     else:
-        inform.info("Прокси: не задан !!!send_telegram_log_db()")
+        print("🌐 Прокси: ❌ не задан")
     try:
-        telegram_cl.send_message(group, "✌️")
-        # telegram_cl.send_document(chat_id=group, document="sql_terminator.db",
-        #                           caption="Файл базы данных")
-        # time.sleep(2)
-        # telegram_cl.send_document(chat_id=group, document="log/informing/inform.log",
-        #                           caption="Информ лог")
-        # time.sleep(2)
-        # telegram_cl.send_document(chat_id=group, document="log/logs/loGgGi.log",
-        #                           caption="Информ лог")
+        telegram_cl.send_message(group, f"-----НАЧАЛО : {datetime.now().strftime('%d.%m.%Y %H:%M')}---")
+
+        # 🔧 Безопасное получение ключей (если элемент — dict)
+        if tupl[0]:
+            keys = tupl[0].keys() if isinstance(tupl[0], dict) else [tupl[0]]
+            telegram_cl.send_message(group, f"✅ ПОКУПКА : <b>{keys}</b>")
+        time.sleep(1)
+        if tupl[1]:
+            keys = tupl[1].keys() if isinstance(tupl[1], dict) else [tupl[1]]
+            telegram_cl.send_message(group, f"🔴 ПРОДАЖА : <b>{keys}</b>")
+
+        end_time_str = (datetime.now() + timedelta(seconds=530)).strftime("%d.%m.%Y %H:%M")
+        telegram_cl.send_message(group, f"-----СЛЕДУЮЩИЙ : {end_time_str}-----")
+        telegram_cl.send_message(group, "🧠")
     except Exception as e:
-        logger.info(f"send_telegram_log_db() ошибка в телеграмм: Ex as e : {e}")
+        logger.info(f"send_telegram() ошибка в телеграмм: Ex as e : {e}")
 
 
 if __name__ == "__main__":
+    # 🔧 ФИКС #1: api_id как int
+    # 🔧 ФИКС #2: клиент создаётся ОДИН раз вне цикла
     telegram_cl = TelegramClient(
         name="SEM",
         api_id=int(api_iddd) if api_iddd else None,  # 🔧 int!
@@ -68,15 +78,20 @@ if __name__ == "__main__":
         parse_mode=ParseMode.HTML,
         proxy=get_proxy_dict(proxy_url),
     )
+
     # 🔌 Подключаемся ОДИН раз перед циклом
     telegram_cl.start()
-    inform.info("telegram Подключено (постоянное соединение)")
+    print("✅ Подключено (постоянное соединение)")
 
     try:
-        send_telegram_log_db(telegram_cl=telegram_cl)
-    except KeyboardInterrupt as e:
-        logger.info(f"Прервано пользователем отправка телеграм Ex as e : {e}")
+        while True:
+            tupl = ({1: 1}, {2: 2})
+            # 📤 Отправляем (соединение уже есть — мгновенно)
+            send_telegram(tupl=tupl, telegram_cl=telegram_cl)
+            time.sleep(10)  # ⏱ пауза между итерациями
+    except KeyboardInterrupt:
+        print("\n⚠️ Прервано пользователем")
     finally:
         # 🛑 Отключаемся только при завершении скрипта
         telegram_cl.stop()
-        inform.info("telegram Отключено (постоянное соединение)")
+        print("🔌 Отключено")

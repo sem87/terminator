@@ -1,25 +1,21 @@
-from tiker_figi_json import *
-from utils import *
+import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
+# from tiker_figi_json import *
+from utils import get_figi, read_tiker_figi_json
 
 
 class TestTikerFigiJson:
     @pytest.fixture()
     def data_share(self):
         """Фикстура с тестовыми данными акций"""
-        return [{"name": "Сбербанк",
-                 "figi": "BBG004730N88",
-                 "ticker": "SBER",
-                 "class_code": "TQBR"},
-                {"name": "Газпром",
-                 "figi": "BBG004730RP0",
-                 "ticker": "GAZP",
-                 "class_code": "TQBR"},
-                {"name": "Яндекс",
-                 "figi": "BBG006L8G4H1",
-                 "ticker": "YNDX",
-                 "class_code": "TQBR"}]
+        return [
+            {"name": "Сбербанк", "figi": "BBG004730N88", "ticker": "SBER", "class_code": "TQBR"},
+            {"name": "Газпром", "figi": "BBG004730RP0", "ticker": "GAZP", "class_code": "TQBR"},
+            {"name": "Яндекс", "figi": "BBG006L8G4H1", "ticker": "YNDX", "class_code": "TQBR"},
+        ]
 
     @pytest.fixture
     def mock_cl(self, data_share):
@@ -30,11 +26,9 @@ class TestTikerFigiJson:
         cl_mock.instruments.shares.return_value = shares_mock
         return cl_mock
 
-    @pytest.mark.parametrize("tiker,result",
-                             [("SBER", "BBG004730N88"),
-                              ("GAZP", "BBG004730RP0"),
-                              ("YNDX", "BBG006L8G4H1"),
-                              ("djdj", None)])
+    @pytest.mark.parametrize(
+        "tiker,result", [("SBER", "BBG004730N88"), ("GAZP", "BBG004730RP0"), ("YNDX", "BBG006L8G4H1"), ("djdj", None)]
+    )
     def test_get_figi(self, mock_cl, tiker, result):
         assert get_figi(tiker=tiker, cl=mock_cl) == result
 
@@ -71,10 +65,10 @@ class TestJsonutils:
         monkeypatch.chdir(tmp_path)
         return json_file
 
-    def test_read_tiker_figi_json_valid_file(self, test_data, test_get_json):
+    def test_read_tiker_figi_json_valid_file(self, test_data):
         assert read_tiker_figi_json() == test_data
 
-    def test_read_tiker_figi_json_invalid_json(self, test_get_json, tmp_path, monkeypatch):
+    def test_read_tiker_figi_json_invalid_json(self, tmp_path, monkeypatch):
         json_file = tmp_path / "tiker_figi.json"
         json_file.write_text("{ неправильный json }", encoding="utf-8")
         monkeypatch.chdir(tmp_path)
@@ -87,19 +81,20 @@ class TestJsonutils:
         result = read_tiker_figi_json()
         assert result == {}
 
-    def test_read_tiker_figi_json_os_error(self, monkeypatch):
+    def test_read_tiker_figi_json_os_error(self):
         # Имитируем OSError при открытии файла
         with patch("builtins.open", side_effect=OSError("Permission denied")):
             result = read_tiker_figi_json()
             assert result == {}
 
-    def test_read_tiker_figi_json_unexpected_exception(self, monkeypatch):
+    def test_read_tiker_figi_json_unexpected_exception(self):
         # Имитируем неожиданное исключение
-        with patch("builtins.open", side_effect=Exception("Что-то пошло не так")):
-            with patch("json.load", side_effect=Exception("Unexpected")):
-                result = read_tiker_figi_json()
-                assert result == {}
+        with (
+            patch("builtins.open", side_effect=Exception("Что-то пошло не так")),
+            patch("json.load", side_effect=Exception("Unexpected")),
+        ):  # ✅ SIM117 исправлен
+            result = read_tiker_figi_json()
+            assert result == {}
 
 
-class TestDataAnalysis:
-    ...
+class TestDataAnalysis: ...

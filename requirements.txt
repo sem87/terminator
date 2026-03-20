@@ -1,1 +1,2 @@
 python-dotenv
+pip install TgCrypto   pip install pipwin    pipwin install TgCrypto
