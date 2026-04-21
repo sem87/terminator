@@ -60,7 +60,7 @@ sql_terminator.db
 .env.*.local
 config/local_settings.py
 SEM.session
-
+SEM.session-journal
 # === IDE / Editors ===
 .vscode/
 .idea/
