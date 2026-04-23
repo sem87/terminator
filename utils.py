@@ -343,8 +343,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
             timeframe = "hour"
             # ПОКУПКА
             # 1_buy_hour) возраст SMA 10.RSI<65    МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (last_rsi < 65)
-            if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (tuple_indicator[0] < 65):
+            # (last_sma_10_3 < last_sma_10_2 < last_sma_10_1) and (prev_rsi < last_rsi < 65)
+            if (tuple_indicator[10] < tuple_indicator[9] < tuple_indicator[8]) and (
+                tuple_indicator[1] < tuple_indicator[0] < 65
+            ):
                 """ВОЗРОСТАНИЕ SMA 10 , RSI"""
                 buy_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(
@@ -358,8 +360,10 @@ def filter_list(interval, figi: str, tiker: str, tuple_indicator: tuple):
                 session.commit()
             # ПРОДАЖА
             # 1_sell_hour) убывающий SMA 10.RSI>25 '-_   МАКСИМАЛЬНО УЖЕСТОЧИТЬ
-            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (35<last_rsi)
-            elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (tuple_indicator[0] > 35):
+            # (last_sma_10_1  < last_sma_10_2 < last_sma_10_3) and (35<last_rsi<prev_rsi)
+            elif (tuple_indicator[8] < tuple_indicator[9] < tuple_indicator[10]) and (
+                35 < tuple_indicator[0] < tuple_indicator[1]
+            ):
                 """УБЫВАЮЩИЙ SMA 10 , RSI"""
                 sale_hour[tiker] = figi
                 filter_tiker = FilterTickerDict(
