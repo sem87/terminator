@@ -1314,7 +1314,7 @@ def send_telegram(tupl: tuple, telegram_cl, group=groupt, buy_day=buy_day):
         if tupl[0]:
             keys = tupl[0].keys() if isinstance(tupl[0], dict) else [tupl[0]]
             telegram_cl.send_message(group, f"✅ ПОКУПКА : <b>{keys}</b>")
-        telegram_cl.send_message(group, f"✅ ДЕНЬ ВВЕРХ <b>{buy_day}</b>")
+        telegram_cl.send_message(group, f"✅ ДЕНЬ ВВЕРХ <b>{buy_day.keys()}</b>")
         time.sleep(1)
         if tupl[1]:
             keys = tupl[1].keys() if isinstance(tupl[1], dict) else [tupl[1]]
