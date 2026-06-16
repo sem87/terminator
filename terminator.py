@@ -116,7 +116,7 @@ if __name__ == "__main__":
             logger.info(f"ОБЩАЯ ОШИБКА: Ex as e : {e}")
         # НАЧАЛО------ОТПРАВКА ТЕЛЕГРАММ------
         try:
-            send_telegram(tupl=tuple_buy_sell, telegram_cl=telegram_cl)
+            send_telegram(tupl=tuple_buy_sell, telegram_cl=telegram_cl, buy_day=buy_day)
         except KeyboardInterrupt as e:
             logger.info(f"Прервано пользователем отправка телеграм Ex as e : {e}")
         # КОНЕЦ------ОТПРАВКА ТЕЛЕГРАММ-------

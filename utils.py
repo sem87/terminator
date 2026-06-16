@@ -1298,11 +1298,7 @@ def get_proxy_dict(proxy_url: str | None):
     }
 
 
-def send_telegram(
-    tupl: tuple,
-    telegram_cl,
-    group=groupt,
-):
+def send_telegram(tupl: tuple, telegram_cl, group=groupt, buy_day=buy_day):
     """ОТПРАВЛЯЕТ В ТЕЛЕГРАММ НА ПОКУПКУ И ПРОДАЖУ"""
     # 🔍 Лог прокси
     if proxy_url := os.getenv("PROXY_URL"):
@@ -1318,6 +1314,7 @@ def send_telegram(
         if tupl[0]:
             keys = tupl[0].keys() if isinstance(tupl[0], dict) else [tupl[0]]
             telegram_cl.send_message(group, f"✅ ПОКУПКА : <b>{keys}</b>")
+        telegram_cl.send_message(group, f"✅ ДЕНЬ ВВЕРХ <b>{buy_day}</b>")
         time.sleep(1)
         if tupl[1]:
             keys = tupl[1].keys() if isinstance(tupl[1], dict) else [tupl[1]]
