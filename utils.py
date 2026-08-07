@@ -10,10 +10,30 @@ from dotenv import load_dotenv
 from sqlalchemy import and_, asc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+# import pandas_ta as ta
 from ta.momentum import RSIIndicator
 from ta.trend import MACD, SMAIndicator
 from ta.volatility import BollingerBands
-from tinkoff.invest import (
+
+# from tinkoff.invest import (
+#     CandleInterval,
+#     InstrumentIdType,
+#     InstrumentStatus,
+#     OperationState,
+#     OperationType,
+#     OrderDirection,
+#     OrderType,
+#     RequestError,
+# )
+# from tinkoff.invest.services import (
+#     InstrumentsService,
+#     StopOrderDirection,
+#     StopOrderExpirationType,
+#     StopOrderType,
+# )
+# from tinkoff.invest.utils import decimal_to_quotation, now, quotation_to_decimal
+
+from t_tech.invest import (
     CandleInterval,
     InstrumentIdType,
     InstrumentStatus,
@@ -22,14 +42,18 @@ from tinkoff.invest import (
     OrderDirection,
     OrderType,
     RequestError,
+    Client, # Не забудь импортировать Client
 )
-from tinkoff.invest.services import (
+from t_tech.invest.services import (
     InstrumentsService,
     StopOrderDirection,
     StopOrderExpirationType,
     StopOrderType,
 )
-from tinkoff.invest.utils import decimal_to_quotation, now, quotation_to_decimal
+from t_tech.invest.utils import decimal_to_quotation, now, quotation_to_decimal
+
+
+
 
 from log.logger import inform, logger
 from sql_terminator import (

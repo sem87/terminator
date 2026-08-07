@@ -2,8 +2,8 @@ import time
 
 from pyrogram import Client as TelegramClient
 from pyrogram.enums import ParseMode
-from tinkoff.invest import CandleInterval, Client
-
+# from tinkoff.invest import CandleInterval, Client
+from t_tech.invest import CandleInterval, Client
 from log.logger import inform, logger
 from utils import (
     activ_pokupka,
