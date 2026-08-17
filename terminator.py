@@ -47,7 +47,7 @@ if __name__ == "__main__":
         proxy=get_proxy_dict(proxy_url),
     )
 
-    # 🔌 Подключаемся ОДИН раз перед циклом
+    # Подключаемся ОДИН раз перед циклом
     telegram_cl.start()
     inform.info("telegram Подключено (постоянное соединение)")
     # КОНЕЦ------СОЗДАЕМ TelegramClient-------

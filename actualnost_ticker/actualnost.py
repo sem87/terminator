@@ -40,17 +40,20 @@ class ActualniiTiker:
 
     def __init__(self, token: str, file_path: str = "tiker_figi.json", days: int = 7) -> None:
         self.token = token
-        self.file_path = file_path  # это можно не указывать по умолчанию
+        self.file_path = file_path
         self.days = days
-        self._client = None  # Клиент создаётся по требованию    зачем это делать
+        self._client = None  # Сам канал
+        self._services = None  # Объект Services с методами API (instruments, orders и т.д.)
         self.tiker_figi = {}
 
     @property
     def client(self):
-        """ЛЕНИВОЕ СОЗДАНИЕ КЛИЕНТА"""
-        if self._client is None:
+        """ЛЕНИВОЕ СОЗДАНИЕ КЛИЕНТА И ПОЛУЧЕНИЕ SERVICES"""
+        if self._services is None:
             self._client = Client(self.token)
-        return self._client
+            # __enter__ открывает канал и возвращает объект Services
+            self._services = self._client.__enter__()
+        return self._services
 
     def last_modified_json(self):
         """ПРОВЕРЯЕТ ДАВНО ЛИ ОБНОВЛЯЛСЯ tiker_figi.json"""
@@ -68,7 +71,8 @@ class ActualniiTiker:
                     inform.info(f"Файл был изменён менее {self.days} дней. Прошло только {delta.days} дней!!! ВСЕ ОК.")
                     return False
         except Exception as e:
-            logger.info(f"last_modified_json() - (ошибка) нет файла tiker_figi.json: Exception as e : {e}")
+            logger.info(
+                f"ActualniiTiker last_modified_json() - (ошибка) нет файла tiker_figi.json: Exception as e : {e}")
 
     # ---------НАЧАЛО ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------------
     def save_all_json(self):
@@ -76,33 +80,71 @@ class ActualniiTiker:
         try:
             tikers = self.list_active_tickers()
             for tiker in tikers:
-                self.tiker_figi[tiker] = self.get_figi(tiker=tiker, cl=self.client)
+                self.tiker_figi[tiker] = self.get_figi(tiker=tiker)
             with open(self.file_path, "w", encoding="utf-8") as f:
-                json.dump(self.tiker_figi,f, indent=4, ensure_ascii=False, sort_keys=True)
-            return None
+                json.dump(self.tiker_figi, f, indent=4, ensure_ascii=False, sort_keys=True)
+            return True
         except Exception as e:
-            logger.info(f" - функция save_all_json - не получается сохранить JSON.Exception as e : {e}")
+            logger.info(f"ActualniiTiker save_all_json - не получается сохранить JSON.Exception as e : {e}")
+            return False
+
+    def _load_all_instruments(self):
+        """ЗАГРУЖАЕТ ВСЕ ТИПЫ ИНСТРУМЕНТОВ И КЭШИРУЕТ ИХ"""
+        if hasattr(self, '_all_instruments_df'):
+            return  # Уже загружено, не грузим повторно
+        instruments: InstrumentsService = self.client.instruments
+        all_data = []
+        # Все доступные типы инструментов
+        methods = {
+            'shares': 'Акции',
+            'bonds': 'Облигации (ОФЗ)',
+            'etfs': 'ETF',
+            'currencies': 'Валюты (золото)',
+            'futures': 'Фьючерсы',
+        }
+        for method_name, type_name in methods.items():
+            try:
+                # Динамически вызываем нужный метод API
+                method = getattr(instruments, method_name)
+                result = method(instrument_status=InstrumentStatus.INSTRUMENT_STATUS_BASE)
+                # Превращаем в DataFrame
+                df = pd.DataFrame(
+                    result.instruments,
+                    columns=["name", "figi", "ticker", "class_code"]
+                )
+                df['type'] = type_name
+                all_data.append(df)
+                logger.info(f"Загружено {type_name}: {len(df)} шт.")
+            except Exception as e:
+                logger.info(f"Ошибка загрузки {type_name}: {e}")
+        # Склеиваем все инструменты в один общий DataFrame
+        self._all_instruments_df = pd.concat(all_data, ignore_index=True)
+
+    def get_figi(self, tiker: str) -> str | None:
+        """УНИВЕРСАЛЬНЫЙ ПОИСК FIGI ДЛЯ ЛЮБОГО ТИКЕРА"""
+        # instruments.shares()-Акции
+        # instruments.bonds()-Облигации(включая ОФЗ)
+        # instruments.etfs()-ETF(фонды)
+        # instruments.currencies()-Валюты(включая-золото — торгуется-как-валютная-пара-GLD_RUB)
+        # instruments.futures()-Фьючерсы
+        # instruments.options()-Опционы
+        # Загружаем все инструменты (кешируется после первого вызова)
+        self._load_all_instruments()
+        # Ищем тикер во всех типах инструментов сразу
+        mask = self._all_instruments_df["ticker"] == tiker
+        matches = self._all_instruments_df[mask]
+        # Не найден
+        if matches.empty:
+            logger.info(f"Тикер '{tiker}' не найден ни в одном типе инструментов")
             return None
-
-
-    def get_figi(self, cl, tiker: str):
-        """ИЗВЛЕКАЕТ ИЗ ТИКЕРА ФИГИ"""
-        try:
-            instruments: InstrumentsService = cl.instruments
-            # market_data: MarketDataService = cl.market_data
-            # Забирает данные для INSTRUMENT_STATUS_BASE
-            df = pd.DataFrame(
-                instruments.shares(instrument_status=InstrumentStatus.INSTRUMENT_STATUS_BASE).instruments,
-                columns=["name", "figi", "ticker", "class_code"],
+        # Найден в нескольких (бывает для разных бирж)
+        if len(matches) > 1:
+            logger.info(
+                f"Тикер '{tiker}' найден в нескольких инструментах:\n"
+                f"{matches[['ticker', 'type', 'name', 'class_code']].to_string(index=False)}\n"
+                f"Берём первый: {matches.iloc[0]['name']} ({matches.iloc[0]['type']})"
             )
-            # for method in ['shares' АКЦИИ, 'bonds', 'etfs' ]:
-            # 'currencies', 'futures']:  ОБЛИГАЦИИ ЕТФ ОПЦИОНЫ НУЖНО РАЗБИРАТЬСЯ
-            figi = df[df["ticker"] == tiker]["figi"].iloc[0]
-            return figi
-        except Exception as e:
-            logger.info(f" {tiker} - функция get_figi() - не получается достать figi Exception as e : {e}")
-            return None
-
+        return matches["figi"].iloc[0]
 
     def read_tiker_figi_json(self) -> dict[str, Any]:
         """Читает данные из JSON."""
@@ -115,34 +157,32 @@ class ActualniiTiker:
             logger.info(f"Ошибка чтения: {e}")
         return {}
 
-    # # =================   нужно разобраться почему это все так   =================
-
     def list_active_tickers(self):
         """ПОЛУЧАЕМ СПИСОК ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ"""
         try:
             active_tickers = session.query(AnalysisTiker.tiker).filter(AnalysisTiker.activity == "на рынке").all()
             active_tickers = [row[0] for row in active_tickers]
-            print(f"СПИСОК АКТИВНЫХ АКЦИЙ {active_tickers}")
+            logger.info(f"СПИСОК АКТИВНЫХ АКЦИЙ {active_tickers}")
             return active_tickers
         except Exception as e:
             logger.info(
-                f"list_active_tickers() - не получается достать ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ Exception as e : {e}")
-
-    # =================   нужно разобраться почему это все так   =================
-    #  что еще реализовывается в классе что можно сделать
-
-    # ---------КОНЕЦ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------------
+                f"ActualniiTiker list_active_tickers() - не получается достать ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ Exception as e : {e}")
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """ПРАВИЛЬНОЕ ЗАКРЫТИЕ КАНАЛА"""
         if self._client is not None:
-            self._client.close()  # ← закрываем при выходе из with
+            # Закрываем gRPC-канал через __exit__
+            self._client.__exit__(exc_type, exc_val, exc_tb)
             self._client = None
+            self._services = None
 
     def __str__(self):
         return f"Срабатывает класс с количеством дней {self.days}"
+
+    # ---------КОНЕЦ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------------
 
 
 if __name__ == "__main__":
