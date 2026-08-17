@@ -1,0 +1,194 @@
+## Шпаргалка по группам
+### 1. Создание и уничтожение
+| Метод | Когда вызывается |
+|---|---|
+| `__new__(cls)` | до создания экземпляра, возвращает объект |
+| `__init__(self)` | сразу после создания, инициализация |
+| `__del__(self)` | при сборке мусора (не гарантия!) |
+
+```python
+class Singleton:
+    _inst = None
+    def __new__(cls):
+        if cls._inst is None: cls._inst = super().__new__(cls)
+        return cls._inst
+```
+
+### 2. Строковое представление
+| Метод | Триггер |
+|---|---|
+| `__str__` | `print()`, `str()` |
+| `__repr__` | в консоли, в контейнерах, `repr()` |
+| `__format__` | f-строки, `format()` |
+| `__bytes__` | `bytes(obj)` |
+
+### 3. Арифметика
+Прямые (`obj + x`), отражённые (`x + obj`, если у `x` нет метода), инкрементные (`obj += x`).
+
+| Оператор | Прямой | Отражённый | Инкремент |
+|---|---|---|---|
+| `+` | `__add__` | `__radd__` | `__iadd__` |
+| `-` | `__sub__` | `__rsub__` | `__isub__` |
+| `*` | `__mul__` | `__rmul__` | `__imul__` |
+| `/` | `__truediv__` | `__rtruediv__` | `__itruediv__` |
+| `//` | `__floordiv__` | `__rfloordiv__` | `__ifloordiv__` |
+| `%` | `__mod__` | `__rmod__` | `__imod__` |
+| `**` | `__pow__` | `__rpow__` | `__ipow__` |
+| `@` | `__matmul__` | `__rmatmul__` | `__imatmul__` |
+
+Унарные: `__neg__` (`-x`), `__pos__` (`+x`), `__abs__` (`abs(x)`), `__invert__` (`~x`).
+
+### 4. Сравнение и хеширование
+| Оператор | Метод |
+|---|---|
+| `==` | `__eq__` |
+| `!=` | `__ne__` |
+| `<` | `__lt__` |
+| `<=` | `__le__` |
+| `>` | `__gt__` |
+| `>=` | `__ge__` |
+| `hash(obj)` | `__hash__` |
+
+Если определил `__eq__`, `__hash__` сбрасывается в `None` — объект перестаёт быть ключом словаря, пока не задашь `__hash__` явно.
+
+```python
+from functools import total_ordering
+@total_ordering
+class Money:
+    def __init__(self, v): self.v = v
+    def __eq__(self, o): return self.v == o.v
+    def __lt__(self, o): return self.v < o.v
+    # остальные 4 сравнения сгенерируются автоматически
+```
+
+### 5. Приведение типов
+| Функция | Метод |
+|---|---|
+| `int(x)` | `__int__` |
+| `float(x)` | `__float__` |
+| `complex(x)` | `__complex__` |
+| `bool(x)` | `__bool__` (fallback на `__len__`) |
+| `len(x)` | `__len__` |
+| `round(x)` | `__round__` |
+| `math.trunc/floor/ceil` | `__trunc__`, `__floor__`, `__ceil__` |
+
+### 6. Контейнер и итерация
+| Действие | Метод |
+|---|---|
+| `len(obj)` | `__len__` |
+| `obj[key]` | `__getitem__` |
+| `obj[key] = v` | `__setitem__` |
+| `del obj[key]` | `__delitem__` |
+| `x in obj` | `__contains__` |
+| `iter(obj)` | `__iter__` |
+| `next(it)` | `__next__` |
+| `reversed(obj)` | `__reversed__` |
+| пропущенный ключ в `dict` | `__missing__` |
+
+```python
+class Counter:
+    def __init__(self, n): self.n = n
+    def __iter__(self): self.i = 0; return self
+    def __next__(self):
+        if self.i >= self.n: raise StopIteration
+        self.i += 1; return self.i
+
+for x in Counter(3): print(x)  # 1 2 3
+```
+
+### 7. Вызов и атрибуты
+| Действие | Метод |
+|---|---|
+| `obj(args)` | `__call__` |
+| доступ к несуществующему атрибуту | `__getattr__` |
+| любой доступ к атрибуту | `__getattribute__` |
+| `obj.x = v` | `__setattr__` |
+| `del obj.x` | `__delattr__` |
+| `dir(obj)` | `__dir__` |
+
+### 8. Контекстный менеджер (`with`)
+| Метод | Когда |
+|---|---|
+| `__enter__` | вход в блок `with`, возвращает объект |
+| `__exit__(exc_type, exc, tb)` | выход, в т.ч. при исключении. Вернёт `True` — исключение подавлено |
+
+```python
+class Open:
+    def __enter__(self): print("открыл"); return self
+    def __exit__(self, *exc): print("закрыл"); return False
+
+with Open() as f: ...
+```
+
+Открытие/закрытие файлов — это методы конкретного объекта `file`, а сам `with` работает через `__enter__`/`__exit__`.
+
+### 9. Дескрипторы (доступ через атрибуты класса)
+| Метод | Когда |
+|---|---|
+| `__get__` | чтение атрибута |
+| `__set__` | запись |
+| `__delete__` | удаление |
+| `__set_name__` | присвоение имени при создании класса |
+
+База для `property`, `classmethod`, `staticmethod`.
+
+### 10. Pickle и копирование
+| Метод | Назначение |
+|---|---|
+| `__getstate__` / `__setstate__` | сериализация pickle |
+| `__reduce__` | кастомная реконструкция |
+| `__copy__` / `__deepcopy__` | `copy.copy` / `copy.deepcopy` |
+
+### 11. Асинхронные аналоги
+| Метод | Для чего |
+|---|---|
+| `__aiter__`, `__anext__` | `async for` |
+| `__aenter__`, `__aexit__` | `async with` |
+| `__await__` | `await obj` |
+
+### 12. Наследование и метапрограммирование
+| Метод | Когда |
+|---|---|
+| `__init_subclass__` | при создании подкласса (Python 3.6+) |
+| `__class_getitem__` | `MyClass[int]` (generic-подсказки) |
+| `__mro_entries__` | подмена базы при наследовании |
+| `__prepare__` (в метаклассе) | подготовка namespace класса |
+
+### 13. Спецполя
+| Поле | Эффект |
+|---|---|
+| `__slots__` | запрещает `__dict__`, экономит память, ускоряет доступ |
+| `__all__` | список имён для `from module import *` |
+| `__doc__`, `__name__`, `__module__` | метаданные |
+
+---
+
+## Минимальный набор для «нормального» класса
+
+```python
+class Point:
+    __slots__ = ("x", "y")          # память
+
+    def __init__(self, x, y):       # создание
+        self.x, self.y = x, y
+
+    def __repr__(self):             # отладка
+        return f"Point({self.x}, {self.y})"
+
+    def __str__(self):              # print
+        return f"({self.x}; {self.y})"
+
+    def __eq__(self, o):            # ==
+        return isinstance(o, Point) and (self.x, self.y) == (o.x, o.y)
+
+    def __hash__(self):             # ключ dict/set
+        return hash((self.x, self.y))
+
+    def __add__(self, o):           # +
+        return Point(self.x + o.x, self.y + o.y)
+
+    def __bool__(self):             # if obj:
+        return bool(self.x or self.y)
+```
+
+Правило: магические методы **нельзя вызывать напрямую** (`obj.__str__()` — плохо), они вызываются интерпретатором через встроенные функции и операторы.
