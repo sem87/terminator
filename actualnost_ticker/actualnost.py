@@ -4,7 +4,7 @@ import json
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Dict
 import pandas as pd
 from t_tech.invest import (
     CandleInterval,
@@ -27,19 +27,19 @@ from sql_base.sql_terminator_cuber import AnalysisTiker, session
 
 """ДЛЯ ЧТЕНИЯ ТОКЕНА"""
 load_dotenv("../terminator/.env.term")  # Если файл в той же папке, что и скрипт
-token = os.getenv("TOKSELL")  # Обратите внимание на имя переменной
-accid = os.getenv("AOCID")  # Обратите внимание на имя переменной
-telegtok = os.getenv("TELEGTOKENG")
-groupt = os.getenv("GROUPT")
-api_iddd = os.getenv("API_IDDD")
-proxy_url = os.getenv("PROXY_URL")
+# token =  # Обратите внимание на имя переменной
+# accid = os.getenv("AOCID")  # Обратите внимание на имя переменной
+# telegtok = os.getenv("TELEGTOKENG")
+# groupt = os.getenv("GROUPT")
+# api_iddd = os.getenv("API_IDDD")
+# proxy_url = os.getenv("PROXY_URL")
 
 
 class ActualniiTiker:
     """Работа с актуальными тикерами и их FIGI."""
 
-    def __init__(self, token: str, file_path: str = "tiker_figi.json", days: int = 7) -> None:
-        self.token = token
+    def __init__(self, file_path: str = "tiker_figi.json", days: int = 7) -> None:
+        self.token = os.getenv("TOKSELL")
         self.file_path = file_path
         self.days = days
         self._client = None  # Сам канал
@@ -175,26 +175,37 @@ class ActualniiTiker:
         return f"Срабатывает класс с количеством дней {self.days}"
 
     # ---------КОНЕЦ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------------
-class ReadTickerFigiJson:
-    """ЧТЕНИЕ "tiker_figi.json" ЛИБО ДРУГГО json"""
-    def __init__(self,file_path: str = "tiker_figi.json") -> None:
-        self.token = token
-        self.file_path = file_path
 
-    def read_tiker_figi_json(self) -> dict[str, Any]:
-        """Читает данные из JSON."""
+
+class ReadTickerFigiJson:
+    """Чтение JSON-файла (например, 'tiker_figi.json') и возврат данных в виде словаря."""
+
+    def __init__(self, file_path: str = "tiker_figi.json") -> None:
+        self.file_path = file_path
+        self._data: Dict[str, Any] = self._load_tiker_figi_json()
+
+    def _load_tiker_figi_json(self) -> Dict[str, Any]:
+        """Читает данные из JSON и возвращает словарь."""
         try:
             with open(self.file_path, encoding="utf-8") as f:
-                return json.load(f)
+                self._data = json.load(f)
+                return self._data
         except json.JSONDecodeError as e:
-            logger.info(f"Повреждён JSON: {e}")
+            logger.error(f"Повреждён JSON в файле {self.file_path}: {e}")
+        except FileNotFoundError:
+            logger.error(f"Файл не найден: {self.file_path}")
         except OSError as e:
-            logger.info(f"Ошибка чтения: {e}")
+            logger.error(f"Ошибка чтения файла {self.file_path}: {e}")
         return {}
 
+    def read_tiker_figi_json(self) -> Dict[str, Any]:
+        """Возвращает загруженный словарь."""
+        return self._load_tiker_figi_json()
 
-    def __str__(self):
-        return f"ПРОЧИТАЛ "
+
+    def __str__(self) -> str:
+        status = f"загружено тикеров: {len(self._data)} тикеры {self._data}" if self._data else "данные не загружены"
+        return f"ReadTickerFigiJson(файл: '{self.file_path}', {status})"
 
 
 if __name__ == "__main__":

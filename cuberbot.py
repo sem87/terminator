@@ -1,14 +1,14 @@
 #from telega.telegram import TelegramOtpravka
-from actualnost_ticker.actualnost import ReadTickerFigiJson #,ActualniiTiker
+from actualnost_ticker.actualnost import ReadTickerFigiJson ,ActualniiTiker
 from sbor_dannih.sbor_dannih import SborDannih
 import time
 
 
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
-    # with ActualniiTiker(token=token, days=0) as actual_tiker:
-    #     # Проверяем актуальность
-    #     actual_tiker.last_modified_json()
+    with ActualniiTiker(days=5) as actual_tiker:
+        # Проверяем актуальность
+        actual_tiker.last_modified_json()
     # =========================================
     # Можно узнать тикер по фиги
     # print(actual_tiker.get_figi(tiker="TGLD@"))
@@ -25,8 +25,11 @@ if __name__ == "__main__":
     #     tg.send_telegram(tupl="test_data")
     # ==========КОНЕЦ РОБОТЫ С ТЕЛЕГРАМ============
     # ==========НАЧАЛО СБОР ДАННЫХ===========
-    print(ReadTickerFigiJson().read_tiker_figi_json())
-    ReadTickerFigiJson()
+    a= ReadTickerFigiJson()
+    # print(a.read_tiker_figi_json())
+    print(a)
+
+
     # while True:
     #     with SborDannih() as sbor:
     #         print(sbor)
