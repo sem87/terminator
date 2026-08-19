@@ -1,4 +1,7 @@
-from telega.telegram import TelegramOtpravka
+#from telega.telegram import TelegramOtpravka
+from actualnost_ticker.actualnost import ReadTickerFigiJson #,ActualniiTiker
+from sbor_dannih.sbor_dannih import SborDannih
+import time
 
 
 if __name__ == "__main__":
@@ -16,8 +19,18 @@ if __name__ == "__main__":
     # ==========================================
     # ==========КОНЕЦ РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
     # ==========НАЧАЛО РОБОТЫ С ТЕЛЕГРАМ ============
-    # Класс сам запустит (start) и закроет (stop) клиент
-    with TelegramOtpravka() as tg:
-        # test_data = [{"BTC": 100}, {"ETH": 200}]
-        tg.send_telegram(tupl="test_data")
-    # ==========КОНЕЦ РОБОТЫ С ТЕЛЕГРАМ ============
+    # # Класс сам запустит (start) и закроет (stop) клиент
+    # with TelegramOtpravka() as tg:
+    #     # test_data = [{"BTC": 100}, {"ETH": 200}]
+    #     tg.send_telegram(tupl="test_data")
+    # ==========КОНЕЦ РОБОТЫ С ТЕЛЕГРАМ============
+    # ==========НАЧАЛО СБОР ДАННЫХ===========
+    print(ReadTickerFigiJson().read_tiker_figi_json())
+    ReadTickerFigiJson()
+    # while True:
+    #     with SborDannih() as sbor:
+    #         print(sbor)
+    #     time.sleep(10)
+
+
+    # ==========КОНЕЦ СБОР ДАННЫХ============

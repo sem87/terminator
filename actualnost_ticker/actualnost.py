@@ -146,16 +146,8 @@ class ActualniiTiker:
             )
         return matches["figi"].iloc[0]
 
-    def read_tiker_figi_json(self) -> dict[str, Any]:
-        """Читает данные из JSON."""
-        try:
-            with open(self.file_path, encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError as e:
-            logger.info(f"Повреждён JSON: {e}")
-        except OSError as e:
-            logger.info(f"Ошибка чтения: {e}")
-        return {}
+
+
 
     def list_active_tickers(self):
         """ПОЛУЧАЕМ СПИСОК ВСЕ АКЦИИ 'на рынке' ИЗ БАЗЫ"""
@@ -183,6 +175,26 @@ class ActualniiTiker:
         return f"Срабатывает класс с количеством дней {self.days}"
 
     # ---------КОНЕЦ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------------
+class ReadTickerFigiJson:
+    """ЧТЕНИЕ "tiker_figi.json" ЛИБО ДРУГГО json"""
+    def __init__(self,file_path: str = "tiker_figi.json") -> None:
+        self.token = token
+        self.file_path = file_path
+
+    def read_tiker_figi_json(self) -> dict[str, Any]:
+        """Читает данные из JSON."""
+        try:
+            with open(self.file_path, encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            logger.info(f"Повреждён JSON: {e}")
+        except OSError as e:
+            logger.info(f"Ошибка чтения: {e}")
+        return {}
+
+
+    def __str__(self):
+        return f"ПРОЧИТАЛ "
 
 
 if __name__ == "__main__":
