@@ -3,7 +3,7 @@ import time
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
 from sbor_dannih.sbor_dannih import SborDannih
-
+from t_tech.invest import CandleInterval, Client
 
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
@@ -26,13 +26,17 @@ if __name__ == "__main__":
     #     tg.send_telegram(tupl="test_data")
     # ==========КОНЕЦ РОБОТЫ С ТЕЛЕГРАМ============
     # ==========НАЧАЛО СБОР ДАННЫХ===========
-    a = ReadTickerFigiJson()
-    # print(a.read_tiker_figi_json())
-    print(a)
-
     while True:
-        with SborDannih() as sbor:
-            print(sbor)
+        with SborDannih() as sbor_dannich:
+            for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
+                print(f"Тикер - {tiker},фиги - {figi}")
+                print(sbor_dannich.candl(day=1,interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=figi))
         time.sleep(10)
+
+
+    # while True:
+    #     with SborDannih() as sbor:
+    #         print(sbor)
+    #     time.sleep(10)
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
