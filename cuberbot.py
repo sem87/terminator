@@ -37,9 +37,9 @@ if __name__ == "__main__":
                     # (CandleInterval.CANDLE_INTERVAL_DAY.name, 50)
                     print(f"Тикер - {tiker},фиги - {figi} , тайм лист - {time_list} , тайм лист дней - {time_list_day}")
                     #print(sbor_dannich.candl(day=time_list_day,interval=time_list, figi=figi, tiker=figi))
-                    # print(sbor_dannich.calculate_indicator(
-                    #     df=sbor_dannich.candl(day=5, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi,
-                    #                           tiker=figi), tiker=tiker))
+                    print(sbor_dannich.calculate_indicator(
+                        df=sbor_dannich.candl(day=time_list_day, interval=time_list, figi=figi,
+                                              tiker=tiker), tiker=tiker).last_sma_10_1)
         time.sleep(10)
 
     # while True:
