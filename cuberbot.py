@@ -26,16 +26,21 @@ if __name__ == "__main__":
     #     tg.send_telegram(tupl="test_data")
     # ==========КОНЕЦ РОБОТЫ С ТЕЛЕГРАМ============
     # ==========НАЧАЛО СБОР ДАННЫХ===========
-    a=0
-    while a<1:
-        a=a+1
+    a = 0
+    while a < 1:
+        a = a + 1
         with SborDannih() as sbor_dannich:
             for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
-                print(f"Тикер - {tiker},фиги - {figi}")
-                #print(sbor_dannich.candl(day=1,interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=figi))
-                print(sbor_dannich.calculate_indicator(df=sbor_dannich.candl(day=5, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=figi),tiker=tiker))
+                for time_list, time_list_day in [(CandleInterval.CANDLE_INTERVAL_DAY, 50),
+                                                 (CandleInterval.CANDLE_INTERVAL_HOUR, 7),
+                                                 (CandleInterval.CANDLE_INTERVAL_5_MIN, 1)]:
+                    # (CandleInterval.CANDLE_INTERVAL_DAY.name, 50)
+                    print(f"Тикер - {tiker},фиги - {figi} , тайм лист - {time_list} , тайм лист дней - {time_list_day}")
+                    #print(sbor_dannich.candl(day=time_list_day,interval=time_list, figi=figi, tiker=figi))
+                    # print(sbor_dannich.calculate_indicator(
+                    #     df=sbor_dannich.candl(day=5, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi,
+                    #                           tiker=figi), tiker=tiker))
         time.sleep(10)
-
 
     # while True:
     #     with SborDannih() as sbor:
