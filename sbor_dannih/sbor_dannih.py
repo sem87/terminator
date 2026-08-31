@@ -49,13 +49,17 @@ class SborDannih:
         self.token = os.getenv("TOKSELL")
         self._client = None  # Сам канал
         self._services = None  # Объект Services с методами API (instruments, orders и т.д.)
+        # Словари для промежуточных результатов (если нужны)
         self.buy_day = {}
         self.buy_hour = {}
-        self.buy_15min = {}
-        self.buy_itog = {}
+        self.buy_5min = {}  # Было buy_15min, исправлено под логику 5 мин
+
         self.sale_day = {}
         self.sale_hour = {}
-        self.sale_15min = {}
+        self.sale_5min = {}  # Было sale_15min
+
+        # Итоговые словари для конфлюенса
+        self.buy_itog = {}
         self.sale_itog = {}
 
 
@@ -163,84 +167,183 @@ class SborDannih:
             logger.error(f"{tiker} - calculate_indicator() ошибка: {e}")
             return None
 
-    def filter_list(self, interval: CandleInterval, figi: str, tiker: str, data: IndicatorData):
-        """Фильтр по спискам на покупку и продажу"""
+    # def filter_list(self, interval: CandleInterval, figi: str, tiker: str, data: IndicatorData):
+    #     """НЕ ПОНЯТНО НУЖНО ЭТО ИЛИ НЕТ !!!!!!!!!!!!!!!"""
+    #
+    #
+    #
+    #     """Фильтр по спискам на покупку и продажу"""
+    #     try:
+    #         # Примечание: buy_day, sale_day, FilterTickerDict, session и др.
+    #         # должны быть доступны в глобальной области видимости или импортированы.
+    #         interval_map = {
+    #             CandleInterval.CANDLE_INTERVAL_DAY: ("day", buy_day, sale_day),  # type: ignore
+    #             CandleInterval.CANDLE_INTERVAL_HOUR: ("hour", buy_hour, sale_hour),  # type: ignore
+    #             CandleInterval.CANDLE_INTERVAL_5_MIN: ("5_min", buy_5min, sale_5min)
+    #         }
+    #
+    #         if interval not in interval_map:
+    #             logger.info(f"{tiker} - filter_list() - НЕТ НУЖНОГО ИНТЕРВАЛА")
+    #             return
+    #
+    #         timeframe, buy_dict, sale_dict = interval_map[interval]
+    #
+    #         def add_signal(action: str, strategy: str, target_dict: dict):
+    #             target_dict[tiker] = figi
+    #             filter_tiker = FilterTickerDict(  # type: ignore
+    #                 tiker=tiker,
+    #                 timeframe=timeframe,
+    #                 action=action,
+    #                 strategy=f"{strategy}_{timeframe}",
+    #                 description=f"last_MACD:{round(data.last_macd, 2)}, last_rsi:{round(data.last_rsi, 2)}, midBoll:{round(data.mid_bollinger, 2)}",
+    #             )
+    #             session.add(filter_tiker)  # type: ignore
+    #             session.commit()  # type: ignore
+    #
+    #         # Предварительный расчет общих условий для читаемости и производительности
+    #         sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
+    #         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
+    #         close_below_boll = data.close < data.mid_bollinger
+    #         close_above_boll = data.close > data.mid_bollinger
+    #
+    #         # --- ЛОГИКА ДЛЯ DAY ---
+    #         if interval == CandleInterval.CANDLE_INTERVAL_DAY:
+    #             if sma_up:
+    #                 add_signal("buy", "1_buy) возраст SMA 10", buy_dict)
+    #             elif sma_down:
+    #                 add_signal("sell", "1_sell) убывающий SMA 10", sale_dict)
+    #
+    #         # --- ЛОГИКА ДЛЯ HOUR ---
+    #         elif interval == CandleInterval.CANDLE_INTERVAL_HOUR:
+    #             if sma_up and (data.prev_rsi < data.last_rsi < 65):
+    #                 add_signal("buy", "1_buy) возраст SMA 10, RSI<65", buy_dict)
+    #             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
+    #                 add_signal("sell", "1_sell) убывающий SMA 10, RSI>35", sale_dict)
+    #
+    #         # --- ЛОГИКА ДЛЯ 5_MIN ---
+    #         elif interval == CandleInterval.CANDLE_INTERVAL_5_MIN:
+    #             # Покупка
+    #             if close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
+    #                 add_signal("buy", "1_buy) нижняя т. MACD", buy_dict)
+    #             elif close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
+    #                 add_signal("buy", "2_buy) возраст MACD", buy_dict)
+    #             elif close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55:
+    #                 add_signal("buy", "3_buy) возраст SMA10, боллинджер огранич.", buy_dict)
+    #             elif sma_up and data.prev_rsi < data.last_rsi < 50:
+    #                 add_signal("buy", "4_buy) возраст SMA10 и rsi < 50", buy_dict)
+    #             elif close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
+    #                 add_signal("buy", "5_buy) нижняя т. MACD (эксп.)", buy_dict)
+    #
+    #             # Продажа
+    #             elif close_above_boll and data.prev_macd_4 < data.prev_macd_3 and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
+    #                 add_signal("sell", "1_sell) верхняя т. MACD", sale_dict)
+    #             elif close_above_boll and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
+    #                 add_signal("sell", "2_sell) убывающий MACD", sale_dict)
+    #             elif close_above_boll and sma_down and 45 < data.last_rsi < data.prev_rsi:
+    #                 add_signal("sell", "3_sell) убывающий SMA10, боллинджер огранич.", sale_dict)
+    #             elif sma_down and 50 < data.last_rsi < data.prev_rsi:
+    #                 add_signal("sell", "4_sell) убывающий SMA10 и rsi > 50", sale_dict)
+    #             elif close_above_boll and data.prev_macd_3 < data.prev_macd and 0 < data.last_macd < data.prev_macd and 50 < data.last_rsi < data.prev_rsi:
+    #                 add_signal("sell", "5_sell) верхняя т. MACD (эксп.)", sale_dict)
+    #
+    #     except Exception as e:
+    #         logger.error(f"{tiker} - filter_list() ошибка: {e}")
+
+
+    def _evaluate_timeframe(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
+        """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
+        sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
+        sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
+        close_below_boll = data.close < data.mid_bollinger
+        close_above_boll = data.close > data.mid_bollinger
+
+        is_buy, is_sell = False, False
+        desc = ""
+
+        if tf_name == "day":
+            if sma_up:
+                is_buy, desc = True, "SMA 10 растет"
+            elif sma_down:
+                is_sell, desc = True, "SMA 10 падает"
+
+        elif tf_name == "hour":
+            if sma_up and (data.prev_rsi < data.last_rsi < 65):
+                is_buy, desc = True, "SMA 10 растет, RSI<65"
+            elif sma_down and (35 < data.last_rsi < data.prev_rsi):
+                is_sell, desc = True, "SMA 10 падает, RSI>35"
+
+        elif tf_name == "5_min":
+            # Условия на покупку (любое из 5)
+            buy_conds = [
+                close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
+                close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
+                close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55,
+                sma_up and data.prev_rsi < data.last_rsi < 50,
+                close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50
+            ]
+            if any(buy_conds):
+                is_buy, desc = True, "Сигнал 5мин на покупку (MACD/RSI/BB)"
+
+            # Условия на продажу (любое из 5)
+            sell_conds = [
+                close_above_boll and data.prev_macd_4 < data.prev_macd_3 and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi,
+                close_above_boll and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi,
+                close_above_boll and sma_down and 45 < data.last_rsi < data.prev_rsi,
+                sma_down and 50 < data.last_rsi < data.prev_rsi,
+                close_above_boll and data.prev_macd_3 < data.prev_macd and 0 < data.last_macd < data.prev_macd and 50 < data.last_rsi < data.prev_rsi
+            ]
+            if any(sell_conds):
+                is_sell, desc = True, "Сигнал 5мин на продажу (MACD/RSI/BB)"
+
+        return is_buy, is_sell, desc
+
+
+
+
+    def check_confluence(self, figi: str, tiker: str,
+                         data_day: IndicatorData,
+                         data_hour: IndicatorData,
+                         data_5min: IndicatorData):
+        """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
         try:
-            # Примечание: buy_day, sale_day, FilterTickerDict, session и др.
-            # должны быть доступны в глобальной области видимости или импортированы.
-            interval_map = {
-                CandleInterval.CANDLE_INTERVAL_DAY: ("day", buy_day, sale_day),  # type: ignore
-                CandleInterval.CANDLE_INTERVAL_HOUR: ("hour", buy_hour, sale_hour),  # type: ignore
-                CandleInterval.CANDLE_INTERVAL_5_MIN: ("5_min", buy_5min, sale_5min)
-            }
+            # 1. Оцениваем каждый таймфрейм отдельно
+            buy_d, sell_d, desc_d = self._evaluate_timeframe("day", data_day)
+            buy_h, sell_h, desc_h = self._evaluate_timeframe("hour", data_hour)
+            buy_m, sell_m, desc_m = self._evaluate_timeframe("5_min", data_5min)
 
-            if interval not in interval_map:
-                logger.info(f"{tiker} - filter_list() - НЕТ НУЖНОГО ИНТЕРВАЛА")
-                return
+            # 2. Проверяем строгий конфлюенс (все 3 должны быть True)
+            if buy_d and buy_h and buy_m:
+                self.buy_itog[tiker] = {
+                    "figi": figi,
+                    "action": "buy",
+                    "strategy": "CONFLUENCE_BUY_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4), "boll": round(data_5min.mid_bollinger, 2)}
+                    }
+                }
+                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПОКУПКУ (Day, Hour, 5m)")
 
-            timeframe, buy_dict, sale_dict = interval_map[interval]
-
-            def add_signal(action: str, strategy: str, target_dict: dict):
-                target_dict[tiker] = figi
-                filter_tiker = FilterTickerDict(  # type: ignore
-                    tiker=tiker,
-                    timeframe=timeframe,
-                    action=action,
-                    strategy=f"{strategy}_{timeframe}",
-                    description=f"last_MACD:{round(data.last_macd, 2)}, last_rsi:{round(data.last_rsi, 2)}, midBoll:{round(data.mid_bollinger, 2)}",
-                )
-                session.add(filter_tiker)  # type: ignore
-                session.commit()  # type: ignore
-
-            # Предварительный расчет общих условий для читаемости и производительности
-            sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
-            sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
-            close_below_boll = data.close < data.mid_bollinger
-            close_above_boll = data.close > data.mid_bollinger
-
-            # --- ЛОГИКА ДЛЯ DAY ---
-            if interval == CandleInterval.CANDLE_INTERVAL_DAY:
-                if sma_up:
-                    add_signal("buy", "1_buy) возраст SMA 10", buy_dict)
-                elif sma_down:
-                    add_signal("sell", "1_sell) убывающий SMA 10", sale_dict)
-
-            # --- ЛОГИКА ДЛЯ HOUR ---
-            elif interval == CandleInterval.CANDLE_INTERVAL_HOUR:
-                if sma_up and (data.prev_rsi < data.last_rsi < 65):
-                    add_signal("buy", "1_buy) возраст SMA 10, RSI<65", buy_dict)
-                elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-                    add_signal("sell", "1_sell) убывающий SMA 10, RSI>35", sale_dict)
-
-            # --- ЛОГИКА ДЛЯ 5_MIN ---
-            elif interval == CandleInterval.CANDLE_INTERVAL_5_MIN:
-                # Покупка
-                if close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-                    add_signal("buy", "1_buy) нижняя т. MACD", buy_dict)
-                elif close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-                    add_signal("buy", "2_buy) возраст MACD", buy_dict)
-                elif close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55:
-                    add_signal("buy", "3_buy) возраст SMA10, боллинджер огранич.", buy_dict)
-                elif sma_up and data.prev_rsi < data.last_rsi < 50:
-                    add_signal("buy", "4_buy) возраст SMA10 и rsi < 50", buy_dict)
-                elif close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-                    add_signal("buy", "5_buy) нижняя т. MACD (эксп.)", buy_dict)
-
-                # Продажа
-                elif close_above_boll and data.prev_macd_4 < data.prev_macd_3 and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
-                    add_signal("sell", "1_sell) верхняя т. MACD", sale_dict)
-                elif close_above_boll and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
-                    add_signal("sell", "2_sell) убывающий MACD", sale_dict)
-                elif close_above_boll and sma_down and 45 < data.last_rsi < data.prev_rsi:
-                    add_signal("sell", "3_sell) убывающий SMA10, боллинджер огранич.", sale_dict)
-                elif sma_down and 50 < data.last_rsi < data.prev_rsi:
-                    add_signal("sell", "4_sell) убывающий SMA10 и rsi > 50", sale_dict)
-                elif close_above_boll and data.prev_macd_3 < data.prev_macd and 0 < data.last_macd < data.prev_macd and 50 < data.last_rsi < data.prev_rsi:
-                    add_signal("sell", "5_sell) верхняя т. MACD (эксп.)", sale_dict)
+            elif sell_d and sell_h and sell_m:
+                self.sale_itog[tiker] = {
+                    "figi": figi,
+                    "action": "sell",
+                    "strategy": "CONFLUENCE_SELL_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4), "boll": round(data_5min.mid_bollinger, 2)}
+                    }
+                }
+                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
+            else:
+                logger.debug(f"⏸ {tiker} - Конфлюенс не достигнут. D:{buy_d}/{sell_d}, H:{buy_h}/{sell_h}, M:{buy_m}/{sell_m}")
 
         except Exception as e:
-            logger.error(f"{tiker} - filter_list() ошибка: {e}")
-
+            logger.error(f"{tiker} - check_confluence() ошибка: {e}")
     #  =========================================================
 
 
