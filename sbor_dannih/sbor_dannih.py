@@ -10,10 +10,11 @@ from t_tech.invest import CandleInterval, Client
 from t_tech.invest.utils import decimal_to_quotation, now, quotation_to_decimal
 
 from ta.momentum import RSIIndicator
-from ta.trend import SMAIndicator , MACD # Раскомментируйте ваши импорты ta
+from ta.trend import SMAIndicator, MACD  # Раскомментируйте ваши импорты ta
 from ta.volatility import BollingerBands
 from typing import Optional
 from log.logger import logger
+
 # from tinkoff.invest import CandleInterval
 
 # Загружаем переменные окружения
@@ -42,9 +43,9 @@ class IndicatorData:
     mean_volume: float
 
 
-
 class SborDannih:
     """КЛАСС СОБИРАЕТ ДАННЫЕ"""
+
     def __init__(self) -> None:
         self.token = os.getenv("TOKSELL")
         self._client = None  # Сам канал
@@ -58,16 +59,19 @@ class SborDannih:
         self.sale_hour = {}
         self.sale_5min = {}  # Было sale_15min
 
+
+        # Итоговые словари для конфлюенса отбора в телеграм
+        self.buy_itog_d_h = {}
+        self.sale_itog_d_h = {}
         # Итоговые словари для конфлюенса
         self.buy_itog = {}
         self.sale_itog = {}
-
 
     def __enter__(self):
         # Инициализация происходит здесь, при входе в контекст
         self._client = Client(self.token)
         self._services = self._client.__enter__()
-        print(f"======= Клиент - {self._client }")
+        print(f"======= Клиент - {self._client}")
         print(f"======= Сервис - {self._services}")
         return self
 
@@ -78,22 +82,17 @@ class SborDannih:
             self._client = None
             self._services = None
 
-
     def cleaning_dict(self):
         pass
 
-
     #  =========================================================
-
 
     def candl(self, day: int, interval: CandleInterval, figi: str, tiker: str) -> pd.DataFrame:
         """ИЗВЛЕКАЕТ ДАННЫЕ ИЗ СВЕЧЕК ЗА ОПРЕДЕЛЕННЫЙ ПЕРИОД"""
         try:
-            print(f"======= Клиент - {self._client}")
-            print(f"======= Сервис - {self._services}")
             # self.cleaning_dict() - нужно не забыть чистить словари и делать это правильно
             # Получаем данные о свечах указываем интервал
-            candle_data =  self._services.market_data.get_candles(
+            candle_data = self._services.market_data.get_candles(
                 figi=figi,
                 from_=now() - timedelta(days=day),  # было day=1 (неверно)
                 to=now(),  # было datetime.UTC() (неверно)
@@ -120,8 +119,6 @@ class SborDannih:
             df = pd.DataFrame(None)
             # Проверить когда пустой Дата фрейм???
             return df
-
-
 
     def calculate_indicator(self, df: pd.DataFrame, tiker: str) -> Optional[IndicatorData]:
         """Рассчитывает технические индикаторы для DataFrame"""
@@ -166,89 +163,6 @@ class SborDannih:
         except Exception as e:
             logger.error(f"{tiker} - calculate_indicator() ошибка: {e}")
             return None
-
-    # def filter_list(self, interval: CandleInterval, figi: str, tiker: str, data: IndicatorData):
-    #     """НЕ ПОНЯТНО НУЖНО ЭТО ИЛИ НЕТ !!!!!!!!!!!!!!!"""
-    #
-    #
-    #
-    #     """Фильтр по спискам на покупку и продажу"""
-    #     try:
-    #         # Примечание: buy_day, sale_day, FilterTickerDict, session и др.
-    #         # должны быть доступны в глобальной области видимости или импортированы.
-    #         interval_map = {
-    #             CandleInterval.CANDLE_INTERVAL_DAY: ("day", buy_day, sale_day),  # type: ignore
-    #             CandleInterval.CANDLE_INTERVAL_HOUR: ("hour", buy_hour, sale_hour),  # type: ignore
-    #             CandleInterval.CANDLE_INTERVAL_5_MIN: ("5_min", buy_5min, sale_5min)
-    #         }
-    #
-    #         if interval not in interval_map:
-    #             logger.info(f"{tiker} - filter_list() - НЕТ НУЖНОГО ИНТЕРВАЛА")
-    #             return
-    #
-    #         timeframe, buy_dict, sale_dict = interval_map[interval]
-    #
-    #         def add_signal(action: str, strategy: str, target_dict: dict):
-    #             target_dict[tiker] = figi
-    #             filter_tiker = FilterTickerDict(  # type: ignore
-    #                 tiker=tiker,
-    #                 timeframe=timeframe,
-    #                 action=action,
-    #                 strategy=f"{strategy}_{timeframe}",
-    #                 description=f"last_MACD:{round(data.last_macd, 2)}, last_rsi:{round(data.last_rsi, 2)}, midBoll:{round(data.mid_bollinger, 2)}",
-    #             )
-    #             session.add(filter_tiker)  # type: ignore
-    #             session.commit()  # type: ignore
-    #
-    #         # Предварительный расчет общих условий для читаемости и производительности
-    #         sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
-    #         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
-    #         close_below_boll = data.close < data.mid_bollinger
-    #         close_above_boll = data.close > data.mid_bollinger
-    #
-    #         # --- ЛОГИКА ДЛЯ DAY ---
-    #         if interval == CandleInterval.CANDLE_INTERVAL_DAY:
-    #             if sma_up:
-    #                 add_signal("buy", "1_buy) возраст SMA 10", buy_dict)
-    #             elif sma_down:
-    #                 add_signal("sell", "1_sell) убывающий SMA 10", sale_dict)
-    #
-    #         # --- ЛОГИКА ДЛЯ HOUR ---
-    #         elif interval == CandleInterval.CANDLE_INTERVAL_HOUR:
-    #             if sma_up and (data.prev_rsi < data.last_rsi < 65):
-    #                 add_signal("buy", "1_buy) возраст SMA 10, RSI<65", buy_dict)
-    #             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-    #                 add_signal("sell", "1_sell) убывающий SMA 10, RSI>35", sale_dict)
-    #
-    #         # --- ЛОГИКА ДЛЯ 5_MIN ---
-    #         elif interval == CandleInterval.CANDLE_INTERVAL_5_MIN:
-    #             # Покупка
-    #             if close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-    #                 add_signal("buy", "1_buy) нижняя т. MACD", buy_dict)
-    #             elif close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-    #                 add_signal("buy", "2_buy) возраст MACD", buy_dict)
-    #             elif close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55:
-    #                 add_signal("buy", "3_buy) возраст SMA10, боллинджер огранич.", buy_dict)
-    #             elif sma_up and data.prev_rsi < data.last_rsi < 50:
-    #                 add_signal("buy", "4_buy) возраст SMA10 и rsi < 50", buy_dict)
-    #             elif close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50:
-    #                 add_signal("buy", "5_buy) нижняя т. MACD (эксп.)", buy_dict)
-    #
-    #             # Продажа
-    #             elif close_above_boll and data.prev_macd_4 < data.prev_macd_3 and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
-    #                 add_signal("sell", "1_sell) верхняя т. MACD", sale_dict)
-    #             elif close_above_boll and 0 < data.last_macd < data.prev_macd < data.prev_macd_3 and 50 < data.last_rsi < data.prev_rsi:
-    #                 add_signal("sell", "2_sell) убывающий MACD", sale_dict)
-    #             elif close_above_boll and sma_down and 45 < data.last_rsi < data.prev_rsi:
-    #                 add_signal("sell", "3_sell) убывающий SMA10, боллинджер огранич.", sale_dict)
-    #             elif sma_down and 50 < data.last_rsi < data.prev_rsi:
-    #                 add_signal("sell", "4_sell) убывающий SMA10 и rsi > 50", sale_dict)
-    #             elif close_above_boll and data.prev_macd_3 < data.prev_macd and 0 < data.last_macd < data.prev_macd and 50 < data.last_rsi < data.prev_rsi:
-    #                 add_signal("sell", "5_sell) верхняя т. MACD (эксп.)", sale_dict)
-    #
-    #     except Exception as e:
-    #         logger.error(f"{tiker} - filter_list() ошибка: {e}")
-
 
     def _evaluate_timeframe(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
         """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
@@ -297,9 +211,6 @@ class SborDannih:
 
         return is_buy, is_sell, desc
 
-
-
-
     def check_confluence(self, figi: str, tiker: str,
                          data_day: IndicatorData,
                          data_hour: IndicatorData,
@@ -321,7 +232,8 @@ class SborDannih:
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
-                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4), "boll": round(data_5min.mid_bollinger, 2)}
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
+                                 "boll": round(data_5min.mid_bollinger, 2)}
                     }
                 }
                 logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПОКУПКУ (Day, Hour, 5m)")
@@ -335,17 +247,55 @@ class SborDannih:
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
-                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4), "boll": round(data_5min.mid_bollinger, 2)}
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
+                                 "boll": round(data_5min.mid_bollinger, 2)}
                     }
                 }
                 logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
+
+            #==========Для телеграмма молния =============
+            elif buy_d and buy_h :
+                self.buy_itog[tiker] = {
+                    "figi": figi,
+                    "action": "buy",
+                    "strategy": "CONFLUENCE_BUY_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
+                                 "boll": round(data_5min.mid_bollinger, 2)}
+                    }
+                }
+                logger.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
+            elif sell_d and sell_h and sell_m:
+                self.sale_itog[tiker] = {
+                    "figi": figi,
+                    "action": "sell",
+                    "strategy": "CONFLUENCE_SELL_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
+                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
+                                 "boll": round(data_5min.mid_bollinger, 2)}
+                    }
+                }
+                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
+            # ==========Для телеграмма молния =============
+
+
             else:
-                logger.debug(f"⏸ {tiker} - Конфлюенс не достигнут. D:{buy_d}/{sell_d}, H:{buy_h}/{sell_h}, M:{buy_m}/{sell_m}")
+                logger.debug(
+                    f"{tiker} - Конфлюенс не достигнут."
+                    f" День:buy={buy_d}/sell={sell_d}-описание {desc_d}=======Данные - {data_day.close}"
+                    f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}"
+                    f" 5_мин:buy={buy_m}/sell={sell_m}-описание {desc_m}=======Данные - {data_5min.close}")
 
         except Exception as e:
             logger.error(f"{tiker} - check_confluence() ошибка: {e}")
-    #  =========================================================
 
+    #  =========================================================
 
     @property
     def client(self):
@@ -355,8 +305,6 @@ class SborDannih:
             # __enter__ открывает канал и возвращает объект Services
             self._services = self._client.__enter__()
         return self._services
-
-
 
     def __str__(self):
         return f"ЭТО КЛАСС СБОР ДАННЫХ"

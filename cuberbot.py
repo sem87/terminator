@@ -4,7 +4,7 @@ import time
 from actualnost_ticker.actualnost import ReadTickerFigiJson
 from sbor_dannih.sbor_dannih import SborDannih
 from t_tech.invest import CandleInterval, Client
-
+from log.logger import logger
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
     # with ActualniiTiker(days=5) as actual_tiker:
@@ -44,37 +44,28 @@ if __name__ == "__main__":
 
     # Используем while True для постоянной работы, или while a < 1, если нужен только 1 прогон
     while True:
-        with SborDannih() as sbor:
+        with SborDannih() as sbor_dannich:
             # 1. Очищаем итоговые словари перед новым кругом, чтобы не копился мусор
-            sbor.buy_itog.clear()
-            sbor.sale_itog.clear()
-
-            # Получаем список тикеров
-            tickers_data = ReadTickerFigiJson().read_tiker_figi_json().items()
-
-            for tiker, figi in tickers_data:
+            sbor_dannich.buy_itog.clear()
+            sbor_dannich.sale_itog.clear()
+            for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
                 try:
-                    print(f"⏳ Обработка: {tiker} (FIGI: {figi})")
-
+                    logger.info(f"Тикер - {tiker},фиги - {figi}")
                     # 2. Собираем и рассчитываем данные для ВСЕХ таймфреймов СРАЗУ
                     # День
-                    df_day = sbor.candl(day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker)
-                    data_day = sbor.calculate_indicator(df=df_day, tiker=tiker)
-
+                    df_day = sbor_dannich.candl(day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker)
+                    data_day = sbor_dannich.calculate_indicator(df=df_day, tiker=tiker)
                     # Час
-                    df_hour = sbor.candl(day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi,
-                                         tiker=tiker)
-                    data_hour = sbor.calculate_indicator(df=df_hour, tiker=tiker)
-
+                    df_hour = sbor_dannich.candl(day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi,tiker=tiker)
+                    data_hour = sbor_dannich.calculate_indicator(df=df_hour, tiker=tiker)
                     # 5 минут
-                    df_5min = sbor.candl(day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi,
-                                         tiker=tiker)
-                    data_5min = sbor.calculate_indicator(df=df_5min, tiker=tiker)
+                    df_5min = sbor_dannich.candl(day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi,tiker=tiker)
+                    data_5min = sbor_dannich.calculate_indicator(df=df_5min, tiker=tiker)
 
                     # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
                     if data_day and data_hour and data_5min:
                         # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА!
-                        sbor.check_confluence(
+                        sbor_dannich.check_confluence(
                             figi=figi,
                             tiker=tiker,
                             data_day=data_day,
@@ -82,43 +73,36 @@ if __name__ == "__main__":
                             data_5min=data_5min
                         )
                     else:
-                        print(f"⚠️ {tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
+                        logger.info(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
 
                 except Exception as e:
-                    print(f"❌ Критическая ошибка при обработке {tiker}: {e}")
+                    logger.info(f"❌ Критическая ошибка при обработке {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
 
-            # 5. После прохода по ВСЕМ тикерам, выводим итоги цикла
-            print("\n" + "=" * 60)
-            print("📊 ИТОГИ ТЕКУЩЕГО ЦИКЛА:")
-
-            if sbor.buy_itog:
-                print(f"✅ НАЙДЕНО СИГНАЛОВ НА ПОКУПКУ: {len(sbor.buy_itog)}")
-                for t, info in sbor.buy_itog.items():
-                    print(f"   🟢 {t} | Стратегия: {info['strategy']}")
-                    print(f"      Описание: {info['description']}")
-            else:
-                print("✅ Сигналов на покупку (конфлюенс 3ТФ) нет.")
-
-            if sbor.sale_itog:
-                print(f"🔻 НАЙДЕНО СИГНАЛОВ НА ПРОДАЖУ: {len(sbor.sale_itog)}")
-                for t, info in sbor.sale_itog.items():
-                    print(f"   🔴 {t} | Стратегия: {info['strategy']}")
-                    print(f"      Описание: {info['description']}")
-            else:
-                print("🔻 Сигналов на продажу (конфлюенс 3ТФ) нет.")
-
-            print("=" * 60 + "\n")
+            # # 5. После прохода по ВСЕМ тикерам, выводим итоги цикла
+            # print("\n" + "=" * 60)
+            # print("📊 ИТОГИ ТЕКУЩЕГО ЦИКЛА:")
+            #
+            # if sbor_dannich.buy_itog:
+            #     print(f"✅ НАЙДЕНО СИГНАЛОВ НА ПОКУПКУ: {len(sbor_dannich.buy_itog)}")
+            #     for t, info in sbor_dannich.buy_itog.items():
+            #         print(f"   🟢 {t} | Стратегия: {info['strategy']}")
+            #         print(f"      Описание: {info['description']}")
+            # else:
+            #     print("✅ Сигналов на покупку (конфлюенс 3ТФ) нет.")
+            #
+            # if sbor_dannich.sale_itog:
+            #     print(f"🔻 НАЙДЕНО СИГНАЛОВ НА ПРОДАЖУ: {len(sbor_dannich.sale_itog)}")
+            #     for t, info in sbor_dannich.sale_itog.items():
+            #         print(f"   🔴 {t} | Стратегия: {info['strategy']}")
+            #         print(f"      Описание: {info['description']}")
+            # else:
+            #     print("🔻 Сигналов на продажу (конфлюенс 3ТФ) нет.")
+            #
+            # print("=" * 60 + "\n")
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(10)
 
-
-
-
-    # while True:
-    #     with SborDannih() as sbor:
-    #         print(sbor)
-    #     time.sleep(10)
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
