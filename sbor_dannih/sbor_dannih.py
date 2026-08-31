@@ -255,7 +255,7 @@ class SborDannih:
 
             #==========Для телеграмма молния =============
             elif buy_d and buy_h :
-                self.buy_itog[tiker] = {
+                self.buy_itog_d_h[tiker] = {
                     "figi": figi,
                     "action": "buy",
                     "strategy": "CONFLUENCE_BUY_3TF",
@@ -269,7 +269,7 @@ class SborDannih:
                 }
                 logger.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
             elif sell_d and sell_h and sell_m:
-                self.sale_itog[tiker] = {
+                self.sale_itog_d_h[tiker] = {
                     "figi": figi,
                     "action": "sell",
                     "strategy": "CONFLUENCE_SELL_3TF",
@@ -281,7 +281,7 @@ class SborDannih:
                                  "boll": round(data_5min.mid_bollinger, 2)}
                     }
                 }
-                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
+                logger.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
             # ==========Для телеграмма молния =============
 
 

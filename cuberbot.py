@@ -100,6 +100,10 @@ if __name__ == "__main__":
             #     print("🔻 Сигналов на продажу (конфлюенс 3ТФ) нет.")
             #
             # print("=" * 60 + "\n")
+        print(sbor_dannich.buy_itog_d_h)
+        print(sbor_dannich.sale_itog_d_h)
+        print(sbor_dannich.buy_itog)
+        print(sbor_dannich.sale_itog)
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(10)
