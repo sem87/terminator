@@ -1,10 +1,13 @@
-from telega.telegram import TelegramOtpravka
 import time
 
+from t_tech.invest import CandleInterval
+
 from actualnost_ticker.actualnost import ReadTickerFigiJson
-from sbor_dannih.sbor_dannih import SborDannih
-from t_tech.invest import CandleInterval, Client
 from log.logger import logger
+from sbor_dannih.sbor_dannih import SborDannih
+from telega.telegram import TelegramOtpravka
+
+
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
     # with ActualniiTiker(days=5) as actual_tiker:
@@ -53,34 +56,33 @@ if __name__ == "__main__":
             # Достаем тикер и фиги из sqllite базы которые имеют статус "на рынке"
             for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
                 try:
-                    logger.info(f"Тикер - {tiker},фиги - {figi}")
+                    # logger.info(f"Тикер - {tiker},фиги - {figi}")
                     # 2. Собираем и рассчитываем данные для ВСЕХ таймфреймов СРАЗУ
                     # День
-                    df_day = sbor_dannich.candl(day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker)
+                    df_day = sbor_dannich.candl(
+                        day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker
+                    )
                     data_day = sbor_dannich.calculate_indicator(df=df_day, tiker=tiker)
                     # Час
-                    df_hour = sbor_dannich.candl(day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi,tiker=tiker)
+                    df_hour = sbor_dannich.candl(
+                        day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=tiker
+                    )
                     data_hour = sbor_dannich.calculate_indicator(df=df_hour, tiker=tiker)
                     # 5 минут
-                    df_5min = sbor_dannich.candl(day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi,tiker=tiker)
+                    df_5min = sbor_dannich.candl(
+                        day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi, tiker=tiker
+                    )
                     data_5min = sbor_dannich.calculate_indicator(df=df_5min, tiker=tiker)
 
                     # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
                     if data_day and data_hour and data_5min:
                         # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА! и записываем в словарь
                         sbor_dannich.check_confluence(
-                            figi=figi,
-                            tiker=tiker,
-                            data_day=data_day,
-                            data_hour=data_hour,
-                            data_5min=data_5min
+                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour, data_5min=data_5min
                         )
-                        #5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
+                        # 5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
                         sbor_dannich.telega_confluence_day_hour(
-                            figi=figi,
-                            tiker=tiker,
-                            data_day=data_day,
-                            data_hour=data_hour
+                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour
                         )
 
                     else:
@@ -89,8 +91,8 @@ if __name__ == "__main__":
                 except Exception as e:
                     logger.info(f"❌ Критическая ошибка при обработке {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
-        print(sbor_dannich.buy_itog_d_h)
-        print(sbor_dannich.sale_itog_d_h)
+        print(sbor_dannich.buy_itog_d_h.values())
+        print(sbor_dannich.sale_itog_d_h.values())
         # # print(sbor_dannich.buy_itog)
         # # print(sbor_dannich.sale_itog)
         with TelegramOtpravka() as tg:
@@ -98,6 +100,5 @@ if __name__ == "__main__":
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)
-
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
