@@ -176,27 +176,39 @@ class SborDannih:
 
         if tf_name == "day":
             if sma_up:
-                is_buy, desc = True, "SMA 10 растет"
+                is_buy, desc = True, "SMA10 вверх"
             elif sma_down:
-                is_sell, desc = True, "SMA 10 падает"
+                is_sell, desc = True, "SMA10 вниз"
 
         elif tf_name == "hour":
             if sma_up and (data.prev_rsi < data.last_rsi < 65):
-                is_buy, desc = True, "SMA 10 растет, RSI<65"
+                is_buy, desc = True, "SMA10 вверх, RSI<65"
             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-                is_sell, desc = True, "SMA 10 падает, RSI>35"
+                is_sell, desc = True, "SMA10 вниз, RSI>35"
 
         elif tf_name == "5_min":
-            # Условия на покупку (любое из 5)
-            buy_conds = [
-                close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
-                close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
-                close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55,
-                sma_up and data.prev_rsi < data.last_rsi < 50,
-                close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50
-            ]
-            if any(buy_conds):
-                is_buy, desc = True, "Сигнал 5мин на покупку (MACD/RSI/BB)"
+            # НУЖНО ПРИДУМАТЬ НАЗВАНИЯ ПРИ КАКИХ УСЛОВИЯХ ЧТО ПОЛУЧАЕТСЯ
+            buy_conds = {
+                "BB + MACD(3<4) + RSI<50": close_below_boll and data.prev_macd_3 < data.prev_macd_4 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
+                "BB + MACD + RSI<50": close_below_boll and data.prev_macd_3 < data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50,
+                "BB + SMA_up + RSI<55": close_below_boll and sma_up and data.prev_rsi < data.last_rsi < 55,
+                "SMA_up + RSI<50": sma_up and data.prev_rsi < data.last_rsi < 50,
+                "BB + MACD(разворот) + RSI<50": close_below_boll and data.prev_macd < data.prev_macd_3 and data.prev_macd < data.last_macd < 0 and data.prev_rsi < data.last_rsi < 50
+            }
+            # Находим описание первого сработавшего условия (если есть)
+            triggered_desc_buy_5min = next((desc for desc, cond in buy_conds.items() if cond), None)
+            if triggered_desc_buy_5min:
+                is_buy = True
+                desc = f"*****************Сигнал 5мин на покупку: {triggered_desc_buy_5min}"
+                # Переменную desc теперь можно писать в SQL
+
+
+
+
+
+
+
+
 
             # Условия на продажу (любое из 5)
             sell_conds = [

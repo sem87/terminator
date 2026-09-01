@@ -48,6 +48,9 @@ if __name__ == "__main__":
             # 1. Очищаем итоговые словари перед новым кругом, чтобы не копился мусор
             sbor_dannich.buy_itog.clear()
             sbor_dannich.sale_itog.clear()
+            sbor_dannich.buy_itog_d_h.clear()
+            sbor_dannich.sale_itog_d_h.clear()
+            # Достаем тикер и фиги из sqllite базы которые имеют статус "на рынке"
             for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
                 try:
                     logger.info(f"Тикер - {tiker},фиги - {figi}")
@@ -64,7 +67,7 @@ if __name__ == "__main__":
 
                     # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
                     if data_day and data_hour and data_5min:
-                        # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА!
+                        # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА! и записываем в словарь
                         sbor_dannich.check_confluence(
                             figi=figi,
                             tiker=tiker,
@@ -72,7 +75,7 @@ if __name__ == "__main__":
                             data_hour=data_hour,
                             data_5min=data_5min
                         )
-                        #5. Делаем расчет и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
+                        #5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
                         sbor_dannich.telega_confluence_day_hour(
                             figi=figi,
                             tiker=tiker,
@@ -88,10 +91,9 @@ if __name__ == "__main__":
                     continue  # Переходим к следующему тику, не ломая весь цикл
         print(sbor_dannich.buy_itog_d_h)
         print(sbor_dannich.sale_itog_d_h)
-        # print(sbor_dannich.buy_itog)
-        # print(sbor_dannich.sale_itog)
+        # # print(sbor_dannich.buy_itog)
+        # # print(sbor_dannich.sale_itog)
         with TelegramOtpravka() as tg:
-
             tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
