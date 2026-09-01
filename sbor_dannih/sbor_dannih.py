@@ -253,38 +253,6 @@ class SborDannih:
                 }
                 logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
 
-            #==========Для телеграмма молния =============
-            elif buy_d and buy_h :
-                self.buy_itog_d_h[tiker] = {
-                    "figi": figi,
-                    "action": "buy",
-                    "strategy": "CONFLUENCE_BUY_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
-                    "indicators": {
-                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
-                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
-                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
-                                 "boll": round(data_5min.mid_bollinger, 2)}
-                    }
-                }
-                logger.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
-            elif sell_d and sell_h and sell_m:
-                self.sale_itog_d_h[tiker] = {
-                    "figi": figi,
-                    "action": "sell",
-                    "strategy": "CONFLUENCE_SELL_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
-                    "indicators": {
-                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
-                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
-                        "5min": {"rsi": round(data_5min.last_rsi, 2), "macd": round(data_5min.last_macd, 4),
-                                 "boll": round(data_5min.mid_bollinger, 2)}
-                    }
-                }
-                logger.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
-            # ==========Для телеграмма молния =============
-
-
             else:
                 logger.debug(
                     f"{tiker} - Конфлюенс не достигнут."
@@ -295,7 +263,52 @@ class SborDannih:
         except Exception as e:
             logger.error(f"{tiker} - check_confluence() ошибка: {e}")
 
-    #  =========================================================
+
+    def telega_confluence_day_hour(self, figi: str, tiker: str,
+                         data_day: IndicatorData,
+                         data_hour: IndicatorData):
+        """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
+        try:
+            # 1. Оцениваем каждый таймфрейм отдельно
+            buy_d, sell_d, desc_d = self._evaluate_timeframe("day", data_day)
+            buy_h, sell_h, desc_h = self._evaluate_timeframe("hour", data_hour)
+
+            # 2. Проверяем строгий конфлюенс (все 3 должны быть True)
+
+            #==========Для телеграмма молния =============
+            if buy_d and buy_h :
+                self.buy_itog_d_h[tiker] = {
+                    "figi": figi,
+                    "action": "buy",
+                    "strategy": "CONFLUENCE_BUY_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h} ",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)}}}
+                logger.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
+            elif sell_d and sell_h :
+                self.sale_itog_d_h[tiker] = {
+                    "figi": figi,
+                    "action": "sell",
+                    "strategy": "CONFLUENCE_SELL_3TF",
+                    "description": f"Day: {desc_d} | Hour: {desc_h}",
+                    "indicators": {
+                        "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)}
+                    }
+                }
+                logger.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
+            # ==========Для телеграмма молния =============
+
+
+            else:
+                logger.debug(
+                    f"{tiker} - Конфлюенс не достигнут."
+                    f" День:buy={buy_d}/sell={sell_d}-описание {desc_d}=======Данные - {data_day.close}"
+                    f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}")
+
+        except Exception as e:
+            logger.error(f"{tiker} - telega_confluence_day_hour() ошибка: {e}")
 
     @property
     def client(self):

@@ -1,4 +1,4 @@
-# from telega.telegram import TelegramOtpravka
+from telega.telegram import TelegramOtpravka
 import time
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
@@ -72,41 +72,30 @@ if __name__ == "__main__":
                             data_hour=data_hour,
                             data_5min=data_5min
                         )
+                        #5. Делаем расчет и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
+                        sbor_dannich.telega_confluence_day_hour(
+                            figi=figi,
+                            tiker=tiker,
+                            data_day=data_day,
+                            data_hour=data_hour
+                        )
+
                     else:
                         logger.info(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
 
                 except Exception as e:
                     logger.info(f"❌ Критическая ошибка при обработке {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
-
-            # # 5. После прохода по ВСЕМ тикерам, выводим итоги цикла
-            # print("\n" + "=" * 60)
-            # print("📊 ИТОГИ ТЕКУЩЕГО ЦИКЛА:")
-            #
-            # if sbor_dannich.buy_itog:
-            #     print(f"✅ НАЙДЕНО СИГНАЛОВ НА ПОКУПКУ: {len(sbor_dannich.buy_itog)}")
-            #     for t, info in sbor_dannich.buy_itog.items():
-            #         print(f"   🟢 {t} | Стратегия: {info['strategy']}")
-            #         print(f"      Описание: {info['description']}")
-            # else:
-            #     print("✅ Сигналов на покупку (конфлюенс 3ТФ) нет.")
-            #
-            # if sbor_dannich.sale_itog:
-            #     print(f"🔻 НАЙДЕНО СИГНАЛОВ НА ПРОДАЖУ: {len(sbor_dannich.sale_itog)}")
-            #     for t, info in sbor_dannich.sale_itog.items():
-            #         print(f"   🔴 {t} | Стратегия: {info['strategy']}")
-            #         print(f"      Описание: {info['description']}")
-            # else:
-            #     print("🔻 Сигналов на продажу (конфлюенс 3ТФ) нет.")
-            #
-            # print("=" * 60 + "\n")
         print(sbor_dannich.buy_itog_d_h)
         print(sbor_dannich.sale_itog_d_h)
-        print(sbor_dannich.buy_itog)
-        print(sbor_dannich.sale_itog)
+        # print(sbor_dannich.buy_itog)
+        # print(sbor_dannich.sale_itog)
+        with TelegramOtpravka() as tg:
+
+            tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
-        time.sleep(10)
+        time.sleep(120)
 
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
