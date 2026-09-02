@@ -14,8 +14,18 @@ def setup_logger(name: str, log_file: str, console_level=logging.INFO,
     :param max_bytes: Максимальный размер файла (5 МБ).
     :param backup_count: Количество хранимых старых файлов (итого 3 файла по 5 МБ).
     """
+
+
     logger = logging.getLogger(name)
+    # Имя логов
     logger.setLevel(logging.DEBUG)
+    # Иерархия уровней логирования (числовой вес)
+    # Чем выше число, тем критичнее событие:
+    #     DEBUG (10) — отладка (расчеты, сырые данные).
+    #     INFO (20) — штатная работа (ордер исполнен).
+    #     WARNING (30) — предупреждение (задержка API, проскальзывание).
+    #     ERROR (40) — ошибка (не удалось отправить запрос).
+    #     CRITICAL (50) — авария (потеря связи, маржин-колл).
 
     # Формат: Время | Уровень | Имя логгера | Сообщение
     formatter = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
