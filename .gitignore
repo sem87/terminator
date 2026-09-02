@@ -39,6 +39,9 @@ logs/
 informing/
 inform.log
 loGgGi.log
+trade.log
+system.log
+debug.log
 
 # === SQLite ===
 # Игнорируем файлы БД, если они генерируются локально
