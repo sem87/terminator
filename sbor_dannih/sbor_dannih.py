@@ -10,10 +10,7 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, SMAIndicator  # Раскомментируйте ваши импорты ta
 from ta.volatility import BollingerBands
 
-from log.logger import logger
-
-
-# from tinkoff.invest import CandleInterval
+from log.logicuber import trade_log, system_log, debug_log
 
 # Загружаем переменные окружения
 load_dotenv("../terminator/.env.term")
@@ -49,15 +46,6 @@ class SborDannih:
         self.token = os.getenv("TOKSELL")
         self._client = None  # Сам канал
         self._services = None  # Объект Services с методами API (instruments, orders и т.д.)
-        # Словари для промежуточных результатов (если нужны)
-        self.buy_day = {}
-        self.buy_hour = {}
-        self.buy_5min = {}  # Было buy_15min, исправлено под логику 5 мин
-
-        self.sale_day = {}
-        self.sale_hour = {}
-        self.sale_5min = {}  # Было sale_15min
-
         # Итоговые словари для конфлюенса отбора в телеграм
         self.buy_itog_d_h = {}
         self.sale_itog_d_h = {}
@@ -69,8 +57,6 @@ class SborDannih:
         # Инициализация происходит здесь, при входе в контекст
         self._client = Client(self.token)
         self._services = self._client.__enter__()
-        print(f"======= Клиент - {self._client}")
-        print(f"======= Сервис - {self._services}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -81,10 +67,12 @@ class SborDannih:
             self._services = None
 
     def cleaning_dict(self):
-        pass
+        self.buy_itog.clear()
+        self.sale_itog.clear()
+        self.buy_itog_d_h.clear()
+        self.sale_itog_d_h.clear()
 
     #  =========================================================
-
     def candl(self, day: int, interval: CandleInterval, figi: str, tiker: str) -> pd.DataFrame:
         """ИЗВЛЕКАЕТ ДАННЫЕ ИЗ СВЕЧЕК ЗА ОПРЕДЕЛЕННЫЙ ПЕРИОД"""
         try:
@@ -113,9 +101,12 @@ class SborDannih:
             df = pd.DataFrame(candles)
             return df
         except Exception as e:
-            logger.info(f"{tiker} - candl() извлечение данных : {interval},период : {day} , Exception as e : {e}")
+            system_log.critical(
+                f"{tiker} - SborDannih в candl() извлечение данных : {interval},период : {day} , Exception as e : {e}")
             df = pd.DataFrame(None)
             # Проверить когда пустой Дата фрейм???
+            system_log.critical(
+                f"{tiker} - SborDannih в candl() - нужно что-то придумать с пустым дата фреймом,проверить с какими именно тикерами")
             return df
 
     def calculate_indicator(self, df: pd.DataFrame, tiker: str) -> IndicatorData | None:
@@ -126,7 +117,6 @@ class SborDannih:
             # print(work_df.all())
             work_df["Время"] = pd.to_datetime(work_df["Время"])
             work_df.set_index("Время", inplace=True)
-
             # 2. Расчет индикаторов (библиотека ta)
             work_df["SMA_10"] = SMAIndicator(close=work_df["Закрытие"], window=10).sma_indicator()
             work_df["RSI"] = RSIIndicator(close=work_df["Закрытие"], window=14).rsi()
@@ -134,7 +124,6 @@ class SborDannih:
                 close=work_df["Закрытие"], window_slow=26, window_fast=12, window_sign=9
             ).macd_diff()
             work_df["bb_middle"] = BollingerBands(close=work_df["Закрытие"], window=20, window_dev=2).bollinger_mavg()
-
             # 3. Формирование и возврат результата (имена полей строго совпадают с IndicatorData)
             return IndicatorData(
                 last_rsi=float(work_df["RSI"].iloc[-1]),
@@ -156,7 +145,7 @@ class SborDannih:
             )
 
         except Exception as e:
-            logger.error(f"{tiker} - calculate_indicator() ошибка: {e}")
+            system_log.error(f"{tiker} - SborDannih в calculate_indicator() (может следствие пустого дата фрейма)ошибка: {e}")
             return None
 
     def _evaluate_timeframe(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
@@ -165,7 +154,6 @@ class SborDannih:
         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
         close_below_boll = data.close < data.mid_bollinger
         close_above_boll = data.close > data.mid_bollinger
-
         is_buy, is_sell = False, False
         desc = ""
         # Сделать подробное описание стратегий и так что-бы не запутаться
@@ -185,20 +173,20 @@ class SborDannih:
             # ==========Покупка: описания отражают суть паттерна
             buy_conds = {
                 "Цена < BB + MACD разворот вверх из - + RSI<50": close_below_boll
-                and data.prev_macd_3 < data.prev_macd_4
-                and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
-                and data.prev_rsi < data.last_rsi < 50,
+                                                                 and data.prev_macd_3 < data.prev_macd_4
+                                                                 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
+                                                                 and data.prev_rsi < data.last_rsi < 50,
                 "Цена < BB + MACD рост из - + RSI<50": close_below_boll
-                and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
-                and data.prev_rsi < data.last_rsi < 50,
+                                                       and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
+                                                       and data.prev_rsi < data.last_rsi < 50,
                 "Цена < BB + Тренд SMA вверх + RSI<55": close_below_boll
-                and sma_up
-                and data.prev_rsi < data.last_rsi < 55,
+                                                        and sma_up
+                                                        and data.prev_rsi < data.last_rsi < 55,
                 "Тренд SMA вверх + RSI<50": sma_up and data.prev_rsi < data.last_rsi < 50,
                 "Цена < BB + MACD отскок от дна + RSI<50": close_below_boll
-                and data.prev_macd < data.prev_macd_3
-                and data.prev_macd < data.last_macd < 0
-                and data.prev_rsi < data.last_rsi < 50,
+                                                           and data.prev_macd < data.prev_macd_3
+                                                           and data.prev_macd < data.last_macd < 0
+                                                           and data.prev_rsi < data.last_rsi < 50,
             }
             triggered_desc_buy_5min = next((desc for desc, cond in buy_conds.items() if cond), None)
             if triggered_desc_buy_5min:
@@ -208,20 +196,20 @@ class SborDannih:
             # ==========Продажа: описания отражают суть паттерна
             sell_conds = {
                 "Цена > BB + MACD разворот вниз из + + RSI>50": close_above_boll
-                and data.prev_macd_4 < data.prev_macd_3
-                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
-                and 50 < data.last_rsi < data.prev_rsi,
+                                                                and data.prev_macd_4 < data.prev_macd_3
+                                                                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
+                                                                and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + MACD снижение из + + RSI>50": close_above_boll
-                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
-                and 50 < data.last_rsi < data.prev_rsi,
+                                                           and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
+                                                           and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + Тренд SMA вниз + RSI снижение": close_above_boll
-                and sma_down
-                and 45 < data.last_rsi < data.prev_rsi,
+                                                             and sma_down
+                                                             and 45 < data.last_rsi < data.prev_rsi,
                 "Тренд SMA вниз + RSI>50 снижение": sma_down and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + MACD снижение от пика + RSI>50": close_above_boll
-                and data.prev_macd_3 < data.prev_macd
-                and 0 < data.last_macd < data.prev_macd
-                and 50 < data.last_rsi < data.prev_rsi,
+                                                              and data.prev_macd_3 < data.prev_macd
+                                                              and 0 < data.last_macd < data.prev_macd
+                                                              and 50 < data.last_rsi < data.prev_rsi,
             }
             triggered_desc_sell_5min = next((desc for desc, cond in sell_conds.items() if cond), None)
             if triggered_desc_sell_5min:
@@ -230,7 +218,7 @@ class SborDannih:
         return is_buy, is_sell, desc
 
     def check_confluence(
-        self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData, data_5min: IndicatorData
+            self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData, data_5min: IndicatorData
     ):
         """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
         try:
@@ -256,7 +244,7 @@ class SborDannih:
                         },
                     },
                 }
-                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПОКУПКУ (Day, Hour, 5m)")
+                trade_log.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПОКУПКУ (Day, Hour, 5m)")
 
             elif sell_d and sell_h and sell_m:
                 self.sale_itog[tiker] = {
@@ -274,7 +262,7 @@ class SborDannih:
                         },
                     },
                 }
-                logger.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
+                trade_log.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
 
             else:
                 pass
@@ -285,7 +273,7 @@ class SborDannih:
                 # f" 5_мин:buy={buy_m}/sell={sell_m}-описание {desc_m}=======Данные - {data_5min.close}")
 
         except Exception as e:
-            logger.error(f"{tiker} - check_confluence() ошибка: {e}")
+            system_log.error(f"{tiker} - SborDannih check_confluence() ошибка: {e}")
 
     def telega_confluence_day_hour(self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData):
         """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
@@ -308,7 +296,7 @@ class SborDannih:
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                     },
                 }
-                logger.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
+                trade_log.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
             elif sell_d and sell_h:
                 self.sale_itog_d_h[tiker] = {
                     "figi": figi,
@@ -320,7 +308,7 @@ class SborDannih:
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                     },
                 }
-                logger.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
+                trade_log.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
             # ==========Для телеграмма молния =============
             else:
                 pass
@@ -330,7 +318,7 @@ class SborDannih:
                 #     f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}")
 
         except Exception as e:
-            logger.error(f"{tiker} - telega_confluence_day_hour() ошибка: {e}")
+            system_log.error(f"{tiker} - SborDannih telega_confluence_day_hour() ошибка: {e}")
 
     @property
     def client(self):

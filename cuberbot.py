@@ -3,7 +3,6 @@ import time
 from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
-from log.logicuber import system_log,debug_log,trade_log
 from sbor_dannih.sbor_dannih import SborDannih
 from telega.telegram import TelegramOtpravka
 from log.logicuber import trade_log,system_log,debug_log
@@ -34,10 +33,11 @@ if __name__ == "__main__":
     while True:
         with SborDannih() as sbor_dannich:
             # 1. Очищаем итоговые словари перед новым кругом, чтобы не копился мусор
-            sbor_dannich.buy_itog.clear()
-            sbor_dannich.sale_itog.clear()
-            sbor_dannich.buy_itog_d_h.clear()
-            sbor_dannich.sale_itog_d_h.clear()
+            sbor_dannich.cleaning_dict()
+            # debug_log.debug(f"продажа ===== {sbor_dannich.sale_itog}")
+            # debug_log.debug(f"продажа ===== {sbor_dannich.sale_itog_d_h}")
+            # debug_log.debug(f"покупка ===== {sbor_dannich.buy_itog}")
+            # debug_log.debug(f"покупка ===== {sbor_dannich.buy_itog_d_h}")
             # Достаем тикер и фиги из sqllite базы которые имеют статус "на рынке"
             for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
                 try:
@@ -74,10 +74,10 @@ if __name__ == "__main__":
                         system_log.critical(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
 
                 except Exception as e:
-                    system_log.critical(f"Критическая ошибка при обработке данных - {tiker}: {e}")
+                    system_log.critical(f"Критическая ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
-        print(sbor_dannich.buy_itog_d_h.values())
-        print(sbor_dannich.sale_itog_d_h.values())
+        # print(sbor_dannich.buy_itog_d_h.values())
+        # print(sbor_dannich.sale_itog_d_h.values())
         # # print(sbor_dannich.buy_itog)
         # # print(sbor_dannich.sale_itog)
         with TelegramOtpravka() as tg:
@@ -87,6 +87,12 @@ if __name__ == "__main__":
         time.sleep(120)
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
+
+
+
+
+
+
     # ==========НАЧАЛО ПРОВЕРКА ЛОГИРОВАНИЯ===========
     # # line = "2026-09-03 09:19:09 | CRITICAL | Trade | critical"
     # # # 1. Вес в UTF-8 (для расчета места на диске/в логах)
