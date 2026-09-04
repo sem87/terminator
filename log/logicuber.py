@@ -14,8 +14,6 @@ def setup_logger(name: str, log_file: str, console_level=logging.INFO,
     :param max_bytes: Максимальный размер файла (5 МБ).
     :param backup_count: Количество хранимых старых файлов (итого 3 файла по 5 МБ).
     """
-
-
     logger = logging.getLogger(name)
     # <-- ИЗМЕНЕНО 3: Очищаем старые настройки, чтобы применились новые
     if logger.hasHandlers():
@@ -35,9 +33,10 @@ def setup_logger(name: str, log_file: str, console_level=logging.INFO,
                                   datefmt="%Y-%m-%d %H:%M:%S")
 
     # Файловый обработчик с ротацией
-    file_handler = RotatingFileHandler(
-        log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
-    )
+    # file_handler = RotatingFileHandler(
+    #     log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
+    # )
+    file_handler = logging.FileHandler(log_file, mode='w', encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -60,7 +59,7 @@ def setup_logger(name: str, log_file: str, console_level=logging.INFO,
 # --- Инициализация логгеров для торгового робота ---
 
 # 1. Логгер сделок (в консоль только INFO и выше)
-trade_log = setup_logger("Trade", "log/logs/trade.log", console_level=logging.INFO,max_bytes=500*64)
+trade_log = setup_logger("Trade", "log/logs/trade.log", console_level=logging.INFO,max_bytes=500*200)  # строк*байт в одной строке
 
 # 2. Системный логгер (ошибки, аварии, варнинги)
 system_log = setup_logger("System", "log/logs/system.log", console_level=logging.WARNING)
@@ -70,7 +69,8 @@ debug_log = setup_logger("Debug", "log/logs/debug.log", console_level=logging.CR
 #
 # --- Примеры использования ---
 if __name__ == "__main__":
-    trade_log.info("Открыт LONG по BTCUSDT, объем 0.1")
-    system_log.warning("Задержка API Binance > 500ms")
-    system_log.critical("АВАРИЯ: Потеряно соединение с биржей! Режим остановки торгов.")
-    debug_log.debug("RSI = 34.5, MACD пересек сигнальную линию")
+    pass
+    # trade_log.info("Открыт LONG по BTCUSDT, объем 0.1")
+    # system_log.warning("Задержка API Binance > 500ms")
+    # system_log.critical("АВАРИЯ: Потеряно соединение с биржей! Режим остановки торгов.")
+    # debug_log.debug("RSI = 34.5, MACD пересек сигнальную линию")

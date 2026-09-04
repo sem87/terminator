@@ -92,13 +92,13 @@ if __name__ == "__main__":
     # # 1. Вес в UTF-8 (для расчета места на диске/в логах)
     # print(len(line.encode('utf-8')))
     a=0
-    while a<520:
+    while a<25:
         a=a+1
         trade_log.debug(f"debug - {a}")
-        trade_log.info(f"info - {a}")
-        trade_log.warning(f"warning - {a}")
-        trade_log.error(f"error - {a}")
-        trade_log.critical(f"critical - {a}")
+        # trade_log.info(f"info - {a}")
+        # trade_log.warning(f"warning - {a}")
+        # trade_log.error(f"error - {a}")
+        # trade_log.critical(f"critical - {a}")
     # system_log.warning("Задержка API Binance > 500ms")
     # system_log.critical("АВАРИЯ: Потеряно соединение с биржей! Режим остановки торгов.")
     # debug_log.debug("RSI = 34.5, MACD пересек сигнальную линию")
