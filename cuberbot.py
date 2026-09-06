@@ -3,9 +3,9 @@ import time
 from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
+from log.logicuber import system_log
 from sbor_dannih.sbor_dannih import SborDannih
 from telega.telegram import TelegramOtpravka
-from log.logicuber import trade_log,system_log,debug_log
 
 
 if __name__ == "__main__":
@@ -71,15 +71,19 @@ if __name__ == "__main__":
                         )
 
                     else:
-                        system_log.critical(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
+                        system_log.critical(
+                            f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов."
+                        )
 
                 except Exception as e:
-                    system_log.critical(f"Критическая ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
+                    system_log.critical(
+                        f"Критическая ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}"
+                    )
                     continue  # Переходим к следующему тику, не ломая весь цикл
-        # print(sbor_dannich.buy_itog_d_h.values())
-        # print(sbor_dannich.sale_itog_d_h.values())
-        # # print(sbor_dannich.buy_itog)
-        # # print(sbor_dannich.sale_itog)
+        print(sbor_dannich.buy_itog_d_h.values())
+        print(sbor_dannich.sale_itog_d_h.values())
+        print(sbor_dannich.buy_itog)
+        print(sbor_dannich.sale_itog)
         with TelegramOtpravka() as tg:
             tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
 
@@ -87,11 +91,6 @@ if __name__ == "__main__":
         time.sleep(120)
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
-
-
-
-
-
 
     # ==========НАЧАЛО ПРОВЕРКА ЛОГИРОВАНИЯ===========
     # # line = "2026-09-03 09:19:09 | CRITICAL | Trade | critical"

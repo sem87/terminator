@@ -10,7 +10,8 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, SMAIndicator  # Раскомментируйте ваши импорты ta
 from ta.volatility import BollingerBands
 
-from log.logicuber import trade_log, system_log, debug_log
+from log.logicuber import system_log, trade_log
+
 
 # Загружаем переменные окружения
 load_dotenv("../terminator/.env.term")
@@ -102,11 +103,13 @@ class SborDannih:
             return df
         except Exception as e:
             system_log.critical(
-                f"{tiker} - SborDannih в candl() извлечение данных : {interval},период : {day} , Exception as e : {e}")
+                f"{tiker} - SborDannih в candl() извлечение данных : {interval},период : {day} , Exception as e : {e}"
+            )
             df = pd.DataFrame(None)
             # Проверить когда пустой Дата фрейм???
             system_log.critical(
-                f"{tiker} - SborDannih в candl() - нужно что-то придумать с пустым дата фреймом,проверить с какими именно тикерами")
+                f"{tiker} - SborDannih в candl() - нужно что-то придумать с пустым дата фреймом,проверить с какими именно тикерами"
+            )
             return df
 
     def calculate_indicator(self, df: pd.DataFrame, tiker: str) -> IndicatorData | None:
@@ -145,71 +148,78 @@ class SborDannih:
             )
 
         except Exception as e:
-            system_log.error(f"{tiker} - SborDannih в calculate_indicator() (может следствие пустого дата фрейма)ошибка: {e}")
+            system_log.error(
+                f"{tiker} - SborDannih в calculate_indicator() (может следствие пустого дата фрейма)ошибка: {e}"
+            )
             return None
 
     def _evaluate_timeframe(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
         """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
+        # фильтр SMA (подготовка)
         sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
+        # фильтр боллинджер
         close_below_boll = data.close < data.mid_bollinger
         close_above_boll = data.close > data.mid_bollinger
+
         is_buy, is_sell = False, False
         desc = ""
         # Сделать подробное описание стратегий и так что-бы не запутаться
         if tf_name == "day":
             if sma_up:
-                is_buy, desc = True, "SMA10 вверх"
+                is_buy, desc = True, "День SMA10 вверх"
             elif sma_down:
-                is_sell, desc = True, "SMA10 вниз"
+                is_sell, desc = True, "День SMA10 вниз"
 
         elif tf_name == "hour":
             if sma_up and (data.prev_rsi < data.last_rsi < 65):
-                is_buy, desc = True, "SMA10 вверх, RSI<65"
+                is_buy, desc = True, "Час SMA10 вверх, RSI<65"
             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-                is_sell, desc = True, "SMA10 вниз, RSI>35"
+                is_sell, desc = True, "Час SMA10 вниз, RSI>35"
 
         elif tf_name == "5_min":
-            # ==========Покупка: описания отражают суть паттерна
+            # ==========Покупка: описания отражают суть паттерна...перебирает пары ключ-значение в том порядке, в котором они записаны...
+            # next() мгновенно возвращает соответствующий ключ (desc) и прекращает дальнейший перебор
             buy_conds = {
-                "Цена < BB + MACD разворот вверх из - + RSI<50": close_below_boll
-                                                                 and data.prev_macd_3 < data.prev_macd_4
-                                                                 and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
-                                                                 and data.prev_rsi < data.last_rsi < 50,
-                "Цена < BB + MACD рост из - + RSI<50": close_below_boll
-                                                       and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
-                                                       and data.prev_rsi < data.last_rsi < 50,
-                "Цена < BB + Тренд SMA вверх + RSI<55": close_below_boll
-                                                        and sma_up
-                                                        and data.prev_rsi < data.last_rsi < 55,
-                "Тренд SMA вверх + RSI<50": sma_up and data.prev_rsi < data.last_rsi < 50,
-                "Цена < BB + MACD отскок от дна + RSI<50": close_below_boll
-                                                           and data.prev_macd < data.prev_macd_3
-                                                           and data.prev_macd < data.last_macd < 0
-                                                           and data.prev_rsi < data.last_rsi < 50,
+                "Цена<Боллинджера;MACD разворот вверх из -;RSI<50": close_below_boll
+                and data.prev_macd_3 < data.prev_macd_4
+                and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
+                and data.prev_rsi < data.last_rsi < 50,
+                "Цена<Боллинджера;MACD рост из -;RSI<50": close_below_boll
+                and data.prev_macd_3 < data.prev_macd < data.last_macd < 0
+                and data.prev_rsi < data.last_rsi < 50,
+                "Цена<Боллинджера;Тренд SMA вверх;RSI<55": close_below_boll
+                and sma_up
+                and data.prev_rsi < data.last_rsi < 55,
+                "Тренд SMA вверх;RSI<50": sma_up and data.prev_rsi < data.last_rsi < 50,
+                "Цена<Боллинджера;MACD отскок от дна;RSI<50": close_below_boll
+                and data.prev_macd < data.prev_macd_3
+                and data.prev_macd < data.last_macd < 0
+                and data.prev_rsi < data.last_rsi < 50,
             }
             triggered_desc_buy_5min = next((desc for desc, cond in buy_conds.items() if cond), None)
+            # debug_log.info(f"5мин для проверки {triggered_desc_buy_5min}")
             if triggered_desc_buy_5min:
                 is_buy = True
-                desc = f"Сигнал 5мин BUY: {triggered_desc_buy_5min}"
+                desc = f"5мин BUY: {triggered_desc_buy_5min}"
 
             # ==========Продажа: описания отражают суть паттерна
             sell_conds = {
                 "Цена > BB + MACD разворот вниз из + + RSI>50": close_above_boll
-                                                                and data.prev_macd_4 < data.prev_macd_3
-                                                                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
-                                                                and 50 < data.last_rsi < data.prev_rsi,
+                and data.prev_macd_4 < data.prev_macd_3
+                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
+                and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + MACD снижение из + + RSI>50": close_above_boll
-                                                           and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
-                                                           and 50 < data.last_rsi < data.prev_rsi,
+                and 0 < data.last_macd < data.prev_macd < data.prev_macd_3
+                and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + Тренд SMA вниз + RSI снижение": close_above_boll
-                                                             and sma_down
-                                                             and 45 < data.last_rsi < data.prev_rsi,
+                and sma_down
+                and 45 < data.last_rsi < data.prev_rsi,
                 "Тренд SMA вниз + RSI>50 снижение": sma_down and 50 < data.last_rsi < data.prev_rsi,
                 "Цена > BB + MACD снижение от пика + RSI>50": close_above_boll
-                                                              and data.prev_macd_3 < data.prev_macd
-                                                              and 0 < data.last_macd < data.prev_macd
-                                                              and 50 < data.last_rsi < data.prev_rsi,
+                and data.prev_macd_3 < data.prev_macd
+                and 0 < data.last_macd < data.prev_macd
+                and 50 < data.last_rsi < data.prev_rsi,
             }
             triggered_desc_sell_5min = next((desc for desc, cond in sell_conds.items() if cond), None)
             if triggered_desc_sell_5min:
@@ -218,7 +228,7 @@ class SborDannih:
         return is_buy, is_sell, desc
 
     def check_confluence(
-            self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData, data_5min: IndicatorData
+        self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData, data_5min: IndicatorData
     ):
         """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
         try:
@@ -228,7 +238,7 @@ class SborDannih:
             buy_m, sell_m, desc_m = self._evaluate_timeframe("5_min", data_5min)
 
             # 2. Проверяем строгий конфлюенс (все 3 должны быть True)
-            if buy_d and buy_h and buy_m:
+            if buy_d:  # and buy_m and buy_h
                 self.buy_itog[tiker] = {
                     "figi": figi,
                     "action": "buy",
