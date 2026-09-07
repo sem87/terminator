@@ -1,12 +1,10 @@
 import time
-
 from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
-from log.logicuber import system_log
+from log.logicuber import system_log, debug_log
 from sbor_dannih.sbor_dannih import SborDannih
 from telega.telegram import TelegramOtpravka
-
 
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
@@ -62,30 +60,25 @@ if __name__ == "__main__":
                     # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
                     if data_day and data_hour and data_5min:
                         # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА! и записываем в словарь
-                        sbor_dannich.check_confluence(
-                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour, data_5min=data_5min
-                        )
+                        sbor_dannich.strategy_day_hour_5min(
+                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour, data_5min=data_5min)
                         # 5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
-                        sbor_dannich.telega_confluence_day_hour(
-                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour
-                        )
-
+                        sbor_dannich.strategy_telega_day_hour(
+                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour)
                     else:
-                        system_log.critical(
-                            f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов."
-                        )
-
+                        system_log.critical(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
                 except Exception as e:
-                    system_log.critical(
-                        f"Критическая ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}"
-                    )
+                    system_log.critical(f"Крит ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
-        print(sbor_dannich.buy_itog_d_h.values())
-        print(sbor_dannich.sale_itog_d_h.values())
-        print(sbor_dannich.buy_itog)
-        print(sbor_dannich.sale_itog)
+        debug_log.info(f"Telega покупка : {sbor_dannich.buy_itog_d_h}")
+        debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
+        debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
+        debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
         with TelegramOtpravka() as tg:
-            tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
+            # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
+            # в телегу отправлять по нужной форме
+            pass
+            # tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)

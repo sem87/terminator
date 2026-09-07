@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pyrogram import Client as TelegramClient
 from pyrogram.enums import ParseMode
 
-from log.logger import inform
+from log.logicuber import system_log, trade_log , debug_log
 
 
 # Загружаем переменные окружения один раз при импорте
@@ -50,9 +50,9 @@ class TelegramOtpravka:
         if self.proxy_url:
             p = urlparse(self.proxy_url)
             login = f"{unquote(p.username)[:2]}****:" if p.username else ""
-            inform.info(f"Прокси: {p.scheme.upper()}://{login}****@{p.hostname}:{p.port}")
+            debug_log.info(f"Прокси: {p.scheme.upper()}://{login}****@{p.hostname}:{p.port}")
         else:
-            inform.info("Прокси: не задан")
+            system_log.info("Прокси: не задан")
 
         self.client.start()
 
@@ -72,13 +72,12 @@ class TelegramOtpravka:
             # Пример обработки данных (раскомментируйте при необходимости)
             if tupl:
                 keys = tupl.keys() if isinstance(tupl, dict) else [tupl]
-                self.client.send_message(self.group, f"✅ ПОКУПКА : <b>{keys}</b>")
-
+                self.client.send_message(self.group, f"<b>{keys}</b>")
             self.client.send_message(self.group, f"-----СЛЕДУЮЩИЙ : {end_time_str}-----")
             self.client.send_message(self.group, "🧠")
 
         except Exception as e:
-            inform.info(f"Ошибка отправки в Telegram: {e}")
+            system_log.error(f"Ошибка отправки в TelegramOtpravka send_telegram(): {e}")
 
     def __enter__(self):
         """Поддержка контекстного менеджера (with)."""

@@ -152,7 +152,7 @@ class SborDannih:
                 f"{tiker} - SborDannih в calculate_indicator() (может следствие пустого дата фрейма)ошибка: {e}"
             )
             return None
-
+    # ==================НАЧАЛО ФИЛЬТР СТРАТЕГИЙ (ОЦЕНКА ТАЙМФРЕЙМА)===============
     def _evaluate_timeframe(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
         """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
         # фильтр SMA (подготовка)
@@ -167,15 +167,15 @@ class SborDannih:
         # Сделать подробное описание стратегий и так что-бы не запутаться
         if tf_name == "day":
             if sma_up:
-                is_buy, desc = True, "День SMA10 вверх"
+                is_buy, desc = True, "SMA10 вверх"
             elif sma_down:
-                is_sell, desc = True, "День SMA10 вниз"
+                is_sell, desc = True, "SMA10 вниз"
 
         elif tf_name == "hour":
             if sma_up and (data.prev_rsi < data.last_rsi < 65):
-                is_buy, desc = True, "Час SMA10 вверх, RSI<65"
+                is_buy, desc = True, "SMA10 вверх,RSI<65"
             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-                is_sell, desc = True, "Час SMA10 вниз, RSI>35"
+                is_sell, desc = True, "SMA10 вниз,RSI>35"
 
         elif tf_name == "5_min":
             # ==========Покупка: описания отражают суть паттерна...перебирает пары ключ-значение в том порядке, в котором они записаны...
@@ -201,7 +201,7 @@ class SborDannih:
             # debug_log.info(f"5мин для проверки {triggered_desc_buy_5min}")
             if triggered_desc_buy_5min:
                 is_buy = True
-                desc = f"5мин BUY: {triggered_desc_buy_5min}"
+                desc = f"BUY: {triggered_desc_buy_5min}"
 
             # ==========Продажа: описания отражают суть паттерна
             sell_conds = {
@@ -224,13 +224,15 @@ class SborDannih:
             triggered_desc_sell_5min = next((desc for desc, cond in sell_conds.items() if cond), None)
             if triggered_desc_sell_5min:
                 is_sell = True
-                desc = f"Сигнал 5мин SELL: {triggered_desc_sell_5min}"
+                desc = f"SELL: {triggered_desc_sell_5min}"
         return is_buy, is_sell, desc
 
-    def check_confluence(
+    # ==================КОНЕЦ ФИЛЬТР СТРАТЕГИЙ (ОЦЕНКА ТАЙМФРЕЙМА)===============
+    # ==================НАЧАЛО СТРАТЕГИЙ ================
+    def strategy_day_hour_5min(
         self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData, data_5min: IndicatorData
     ):
-        """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
+        """СТРАТЕГИЯ проверяет одновременное выполнение условий на Day, Hour и 5min"""
         try:
             # 1. Оцениваем каждый таймфрейм отдельно
             buy_d, sell_d, desc_d = self._evaluate_timeframe("day", data_day)
@@ -238,87 +240,81 @@ class SborDannih:
             buy_m, sell_m, desc_m = self._evaluate_timeframe("5_min", data_5min)
 
             # 2. Проверяем строгий конфлюенс (все 3 должны быть True)
-            if buy_d:  # and buy_m and buy_h
+            if buy_d and buy_h and buy_m:
                 self.buy_itog[tiker] = {
                     "figi": figi,
                     "action": "buy",
-                    "strategy": "CONFLUENCE_BUY_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "strategy": "ДЕНЬ+ЧАС+5МИН",
+                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}***5МИН: {desc_m}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                         "5min": {
                             "rsi": round(data_5min.last_rsi, 2),
-                            "macd": round(data_5min.last_macd, 4),
+                            "macd": round(data_5min.last_macd, 3),
                             "boll": round(data_5min.mid_bollinger, 2),
                         },
                     },
                 }
-                trade_log.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПОКУПКУ (Day, Hour, 5m)")
-
+                trade_log.debug(f"{tiker}-ПОКУПКА strategy_day_hour_5min")
             elif sell_d and sell_h and sell_m:
                 self.sale_itog[tiker] = {
                     "figi": figi,
                     "action": "sell",
-                    "strategy": "CONFLUENCE_SELL_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h} | 5m: {desc_m}",
+                    "strategy": "ДЕНЬ+ЧАС+5МИН",
+                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}***5МИН: {desc_m}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                         "5min": {
                             "rsi": round(data_5min.last_rsi, 2),
-                            "macd": round(data_5min.last_macd, 4),
+                            "macd": round(data_5min.last_macd, 3),
                             "boll": round(data_5min.mid_bollinger, 2),
                         },
                     },
                 }
-                trade_log.info(f"✅ {tiker} - КОНФЛЮЕНС НА ПРОДАЖУ (Day, Hour, 5m)")
-
+                trade_log.info(f"{tiker}-ПРОДАЖА strategy_day_hour_5min")
             else:
                 pass
-                # logger.debug(
-                #     f"{tiker} - НЕТУ")
-                # f" День:buy={buy_d}/sell={sell_d}-описание {desc_d}=======Данные - {data_day.close}"
-                # f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}"
-                # f" 5_мин:buy={buy_m}/sell={sell_m}-описание {desc_m}=======Данные - {data_5min.close}")
-
+                # trade_log.critical(f"{tiker} - НЕ ПОДХОДИТ К УСЛОВИЯМ СТРАТЕГИИ strategy_day_hour_5min()")
         except Exception as e:
             system_log.error(f"{tiker} - SborDannih check_confluence() ошибка: {e}")
 
-    def telega_confluence_day_hour(self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData):
-        """Проверяет одновременное выполнение условий на Day, Hour и 5min"""
+
+    def strategy_telega_day_hour(self, figi: str, tiker: str, data_day: IndicatorData, data_hour: IndicatorData):
+        """Стратегия телеграм условие для Day, Hour """
         try:
             # 1. Оцениваем каждый таймфрейм отдельно
             buy_d, sell_d, desc_d = self._evaluate_timeframe("day", data_day)
             buy_h, sell_h, desc_h = self._evaluate_timeframe("hour", data_hour)
 
-            # 2. Проверяем строгий конфлюенс (все 3 должны быть True)
+            # 2. Проверяем строгий конфлюенс (все день и час должны быть True)
 
             # ==========Для телеграмма молния =============
             if buy_d and buy_h:
                 self.buy_itog_d_h[tiker] = {
                     "figi": figi,
                     "action": "buy",
-                    "strategy": "CONFLUENCE_BUY_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h} ",
+                    "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
+                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                     },
                 }
-                trade_log.info(f"✅ {tiker} - ТЕЛЕГА НА ПОКУПКУ (Day, Hour)")
+                trade_log.info(f"{tiker}-ТЕЛЕГА покупка strategy_telega_day_hour")
             elif sell_d and sell_h:
                 self.sale_itog_d_h[tiker] = {
                     "figi": figi,
                     "action": "sell",
-                    "strategy": "CONFLUENCE_SELL_3TF",
-                    "description": f"Day: {desc_d} | Hour: {desc_h}",
+                    "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
+                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                     },
                 }
-                trade_log.info(f"✅ {tiker} -  НА ПРОДАЖУ (Day, Hour)")
+                trade_log.info(f"✅ {tiker}-ТЕЛЕГА продажа strategy_telega_day_hour")
             # ==========Для телеграмма молния =============
             else:
                 pass
@@ -329,6 +325,9 @@ class SborDannih:
 
         except Exception as e:
             system_log.error(f"{tiker} - SborDannih telega_confluence_day_hour() ошибка: {e}")
+
+    # ==================КОНЕЦ СТРАТЕГИЙ =================
+
 
     @property
     def client(self):
