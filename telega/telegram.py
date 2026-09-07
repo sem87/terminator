@@ -72,7 +72,7 @@ class TelegramOtpravka:
             # Пример обработки данных (раскомментируйте при необходимости)
             if tupl:
                 keys = tupl.keys() if isinstance(tupl, dict) else [tupl]
-                self.client.send_message(self.group, f"<b>{keys}</b>")
+                self.client.send_message(self.group, f"НА ПОКУПКУ <b>{keys}</b>")
             self.client.send_message(self.group, f"-----СЛЕДУЮЩИЙ : {end_time_str}-----")
             self.client.send_message(self.group, "🧠")
 

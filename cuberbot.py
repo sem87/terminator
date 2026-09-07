@@ -3,7 +3,7 @@ from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
 from log.logicuber import system_log, debug_log
-from sbor_dannih.sbor_dannih import SborDannih
+from sbor_dannih.sbor_dannih import SborDannih,PrivlicatelnostChitaemost
 from telega.telegram import TelegramOtpravka
 
 if __name__ == "__main__":
@@ -74,11 +74,16 @@ if __name__ == "__main__":
         debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
         debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
         debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
+
+
+
+        # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
+        # debug_log.critical(f"**********{tupl}***********")
         with TelegramOtpravka() as tg:
             # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
             # в телегу отправлять по нужной форме
-            pass
-            # tg.send_telegram(tupl=sbor_dannich.buy_itog_d_h.items())
+            tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
+            tg.send_telegram(tupl=tupl)
 
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)
