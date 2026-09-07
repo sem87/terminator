@@ -3,7 +3,7 @@ from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
 from log.logicuber import system_log, debug_log
-from sbor_dannih.sbor_dannih import SborDannih,PrivlicatelnostChitaemost
+from sbor_dannih.sbor_dannih import SborDannih, PrivlicatelnostChitaemost
 from telega.telegram import TelegramOtpravka
 
 if __name__ == "__main__":
@@ -66,7 +66,8 @@ if __name__ == "__main__":
                         sbor_dannich.strategy_telega_day_hour(
                             figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour)
                     else:
-                        system_log.critical(f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
+                        system_log.critical(
+                            f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
                 except Exception as e:
                     system_log.critical(f"Крит ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
@@ -74,17 +75,15 @@ if __name__ == "__main__":
         debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
         debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
         debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
-
-
-
         # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
+        # print(tupl)
         # debug_log.critical(f"**********{tupl}***********")
         with TelegramOtpravka() as tg:
             # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
             # в телегу отправлять по нужной форме
-            tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
-            tg.send_telegram(tupl=tupl)
-
+            tg.send_telegram(
+                tupl_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
+                tupl_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,reverse=True).format_signals_to_tuple())
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)
 

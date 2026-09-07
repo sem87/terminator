@@ -343,10 +343,10 @@ class SborDannih:
                     "figi": figi,
                     "action": "buy",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
-                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}",
+                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n <b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
-                        "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
+                        "hour": {"rsi": round(data_hour.last_rsi, 2),"vol":round(data_hour.volume/data_hour.mean_volume, 2), "sma": round(data_hour.last_sma_10_1, 2)},
                     },
                 }
                 trade_log.info(f"{tiker}-ТЕЛЕГА покупка strategy_telega_day_hour")
@@ -355,7 +355,7 @@ class SborDannih:
                     "figi": figi,
                     "action": "sell",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
-                    "description": f"ДЕНЬ:{desc_d}***ЧАС:{desc_h}",
+                    "description": f"ДЕНЬ:{desc_d} \n ЧАС:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
@@ -388,26 +388,39 @@ class SborDannih:
         return "ЭТО КЛАСС СБОР ДАННЫХ"
 
 
-class PrivlicatelnostChitaemost:
-    def __init__(self):
-        pass
 
-    def format_signals_to_tuple(self, signals: dict) -> tuple[int, str]:  # , chat_id: int
-        """Формирует tuple (chat_id, message) из словаря сигналов."""
-        lines = [f"🟢 *Покупки* ({len(signals)} шт.)\n"]
-        for ticker, data in signals.items():
+class PrivlicatelnostChitaemost:
+    def __init__(self, signals: dict, sort_by_hour_rsi: bool = True, reverse: bool = False):
+        """ signals: словарь тикеров   sort_by_hour_rsi: если True — сортируем по RSI hour в конструкторе
+        reverse True - по убыванию RSI"""
+        if sort_by_hour_rsi:
+            self.signals = dict(
+                sorted(
+                    signals.items(),
+                    key=lambda item: item[1]['indicators']['hour']['rsi'],
+                    reverse=reverse,
+                )
+            )
+        else:
+            self.signals = signals
+
+    def format_signals_to_tuple(self) -> str:
+        """Формирует текст из уже отсортированных сигналов."""
+        lines = [f"{len(self.signals)} шт\n"]
+        for ticker, data in self.signals.items():
             d = data["indicators"]["day"]
             h = data["indicators"]["hour"]
             lines.append(
-                f"{ticker}\n"
+                f"<b>{ticker}</b>\n"
                 f"Д:RSI:{d['rsi']:.1f}\n"
                 f"Ч:RSI:{h['rsi']:.1f}\n"
-                f"{data['description']}\n")
+                f"{data['description']}\n"
+                f"СОПУТСТВУЮЩИЕ СДЕСЬ\n"
+            )
         text = "\n".join(lines)
-        # # Telegram лимит 4096 — режем если нужно
-        # if len(text) > 4090:
-        #     text = text[:4087] + "..."
-        return (text)
+        if len(text) > 4090:
+            text = text[:4077] + "ЛИМИТ ТЕЛЕГИ"
+        return text
 
 
 if __name__ == "__main__":

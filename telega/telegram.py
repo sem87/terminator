@@ -61,18 +61,17 @@ class TelegramOtpravka:
         if self.client.is_connected:
             self.client.stop()
 
-    def send_telegram(self, tupl: tuple[Any, Any]):
+    def send_telegram(self, tupl_buy: tuple[Any, Any], tupl_sell: tuple[Any, Any]):
         """Отправляет сообщение о покупке/продаже в Telegram."""
         try:
             now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
             end_time_str = (datetime.now() + timedelta(seconds=530)).strftime("%d.%m.%Y %H:%M")
-
             self.client.send_message(self.group, f"-----НАЧАЛО : {now_str}---")
-
             # Пример обработки данных (раскомментируйте при необходимости)
-            if tupl:
-                keys = tupl.keys() if isinstance(tupl, dict) else [tupl]
-                self.client.send_message(self.group, f"НА ПОКУПКУ <b>{keys}</b>")
+            # if tupl:
+            #     keys = tupl.keys() if isinstance(tupl, dict) else [tupl]
+            self.client.send_message(self.group, f"ПОКУПКА МОЛНИЯ {tupl_buy}")
+            self.client.send_message(self.group, f"ПРОДАЖА МОЛНИЯ {tupl_sell}")
             self.client.send_message(self.group, f"-----СЛЕДУЮЩИЙ : {end_time_str}-----")
             self.client.send_message(self.group, "🧠")
 
