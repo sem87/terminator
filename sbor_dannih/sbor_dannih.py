@@ -236,23 +236,26 @@ class SborDannih:
         # фильтр MACD
         macd_up = data.last_macd > data.prev_macd_3
         macd_down = data.last_macd < data.prev_macd_3
+        # фильтр RSI
+        rsi_up = data.last_rsi > data.prev_rsi_3
+        rsi_down = data.last_rsi < data.prev_rsi_3
         # фильтр Боллинджер
         close_below_boll = data.close < data.mid_bollinger
         close_above_boll = data.close > data.mid_bollinger
         # фильтр объёма
         v, m = data.volume, data.mean_volume
         if v > 2.0 * m:
-            vol_txt = "High"
+            vol_txt = "высокий"
         elif v > m:
-            vol_txt = "AboveAvg"
+            vol_txt = "выше средн"
         elif v >= 0.5 * m:
-            vol_txt = "Middle"
+            vol_txt = "средн"
         else:
-            vol_txt = "Low"
+            vol_txt = "низкий"
         # текстовые описания индикаторов (чтобы не дублировать)
         macd_txt = "MACD↑" if macd_up else ("MACD↓" if macd_down else "MACD→")
-        vol_block = f"Vol:{vol_txt}({v / m:.2f}x)"
-        rsi_block = f"RSI:{data.last_rsi:.1f}"
+        vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
+        rsi_block = "RSI↑" if rsi_up else ("RSI↓" if rsi_down else "RSI→")+f"RSI:{data.last_rsi:.1f}"
 
         is_buy, is_sell = False, False
         desc = ""
@@ -334,9 +337,7 @@ class SborDannih:
             # 1. Оцениваем каждый таймфрейм отдельно
             buy_d, sell_d, desc_d = self._filtr_ozenki_strategy_telega_day_hour("day", data_day)
             buy_h, sell_h, desc_h = self._filtr_ozenki_strategy_telega_day_hour("hour", data_hour)
-
             # 2. Проверяем строгий конфлюенс (все день и час должны быть True)
-
             # ==========Для телеграмма молния =============
             if buy_d and buy_h:
                 self.buy_itog_d_h[tiker] = {
@@ -355,7 +356,7 @@ class SborDannih:
                     "figi": figi,
                     "action": "sell",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
-                    "description": f"ДЕНЬ:{desc_d} \n ЧАС:{desc_h}",
+                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n <b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
@@ -411,7 +412,7 @@ class PrivlicatelnostChitaemost:
             d = data["indicators"]["day"]
             h = data["indicators"]["hour"]
             lines.append(
-                f"<b>{ticker}</b>\n"
+                f"👉 <b>{ticker}</b>\n"
                 f"Д:RSI:{d['rsi']:.1f}\n"
                 f"Ч:RSI:{h['rsi']:.1f}\n"
                 f"{data['description']}\n"

@@ -82,8 +82,10 @@ if __name__ == "__main__":
             # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
             # в телегу отправлять по нужной форме
             tg.send_telegram(
-                tupl_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
-                tupl_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,reverse=True).format_signals_to_tuple())
+                molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
+                molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
+                                                      reverse=True).format_signals_to_tuple(),
+                cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.values())
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)
 
