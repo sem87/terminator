@@ -2,7 +2,7 @@ import time
 from t_tech.invest import CandleInterval
 
 from actualnost_ticker.actualnost import ReadTickerFigiJson
-from log.logicuber import system_log, debug_log
+from log.logicuber import system_log, debug_log, trade_log
 from sbor_dannih.sbor_dannih import SborDannih, PrivlicatelnostChitaemost
 from telega.telegram import TelegramOtpravka
 from pokupka.pokupka import BuySellAktiv
@@ -89,10 +89,52 @@ if __name__ == "__main__":
                                                           reverse=True).format_signals_to_tuple(),
                     cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
 
-            # ===========НАЧАЛО ПОКУПКА ======================
-            yze_kupleno = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services).already_exist()
-            print(f"==============={yze_kupleno}")
-            # ===========КОНЕЦ ПОКУПКА =======================
+            # ===========НАЧАЛО ПОКУПКА ПРОДАЖА======================
+            # 1. Создаем экземпляр ОДИН РАЗ перед циклами
+            buy_sell_activ = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services,summa_pokupki=6600.0)
+
+            # 2. Получаем текущий портфель ОДИН РАЗ, чтобы не спамить API в цикле
+            portfolio = buy_sell_activ.already_exist()   # что он возвращает??? почему не словарь
+
+            # ***ПОКУПКА***
+            for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog
+                figi = data_activ.get('figi')
+                trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+                debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+                # Проверка: не покупаем ли мы то, что уже есть
+                if ticker in portfolio:
+                    debug_log.info(f"⚠️ {ticker} уже в портфеле, пропускаем.")
+                    continue
+
+                lots = buy_sell_activ.calculation_number_lots(figi=figi, tiker=ticker)
+                if lots > 0:
+                    print(f"✅ Расчет для покупки {ticker}: {lots} лотов")
+                    # TODO: Здесь вызов функции отправки ордера на покупку
+                else:
+                    print(f"❌ {ticker}: лотов для покупки не рассчитано (нет денег или ошибка)")
+
+            # # ***ПРОДАЖА***
+            # for ticker, data in sbor_dannich.sale_itog.items():
+            #     figi = data.get('figi')
+            #     print(f"!!!!!!!!!!! ПРОДАЖА: {ticker} (FIGI: {figi}) !!!!!!!!!!!")
+            #
+            #     # Для продажи нам нужно знать, сколько у нас ЕСТЬ, а не считать бюджет покупки
+            #     if ticker not in portfolio:
+            #         print(f"⚠️ {ticker} нет в портфеле, продавать нечего.")
+            #         continue
+            #
+            #     # Берем количество из уже полученного портфеля
+            #     # (quantity_units хранит целые лоты, если у вас дробные, используйте логику с nano)
+            #     lots_to_sell = portfolio[ticker].get('quantity_units', 0)
+            #
+            #     if lots_to_sell > 0:
+            #         print(f"✅ Расчет для продажи {ticker}: {lots_to_sell} лотов")
+            #         # TODO: Здесь вызов функции отправки ордера на продажу
+            #     else:
+            #         print(f"❌ {ticker}: количество лотов равно 0, продать нельзя.")
+            # ===========КОНЕЦ ПОКУПКА ПРОДАЖА=======================
+
+
             # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
             time.sleep(120)
 
