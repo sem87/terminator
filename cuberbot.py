@@ -5,6 +5,8 @@ from actualnost_ticker.actualnost import ReadTickerFigiJson
 from log.logicuber import system_log, debug_log
 from sbor_dannih.sbor_dannih import SborDannih, PrivlicatelnostChitaemost
 from telega.telegram import TelegramOtpravka
+from pokupka.pokupka import BuySellAktiv
+
 
 if __name__ == "__main__":
     # ==========НАЧАЛО РОБОТЫ С JSON и подготовка работы с актуальными тикерами и их FIGI. ============
@@ -85,7 +87,12 @@ if __name__ == "__main__":
                 molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
                 molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
                                                       reverse=True).format_signals_to_tuple(),
-                cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.values())
+                cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
+
+        # ===========НАЧАЛО ПОКУПКА ======================
+        yze_kupleno = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services).already_exist()
+        print(yze_kupleno)
+        # ===========КОНЕЦ ПОКУПКА =======================
         # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
         time.sleep(120)
 
@@ -109,7 +116,4 @@ if __name__ == "__main__":
 
 
 
-    # ===========НАЧАЛО ПОКУПКА ======================
-    # for tiker, figi in tuple_buy_sell[0].items():
-    #     activ_pokupka(cl=cl, tiker=tiker, figi=figi)
-    # ===========КОНЕЦ ПОКУПКА =======================
+

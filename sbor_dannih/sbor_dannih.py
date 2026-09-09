@@ -350,7 +350,7 @@ class SborDannih:
                     "action": "buy",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
                     "score_hour": score_h,
-                    "score": f"счет день📅{score_d:+.2f},час⏱️{score_h:+.2f},итого🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
+                    "score": f"счет Д📅{score_d:+.2f},Ч⏱️{score_h:+.2f},ИТОГ🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
                     "description": f"<b>ДЕНЬ</b>:{desc_d} \n<b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
@@ -368,7 +368,7 @@ class SborDannih:
                     "action": "sell",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
                     "score_hour":score_h,
-                    "score": f"счет день📅{score_d:+.2f},час⏱️{score_h:+.2f},итого🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
+                    "score": f"счет Д📅{score_d:+.2f},Ч⏱️{score_h:+.2f},ИТОГ🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
                     "description": f"<b>ДЕНЬ</b>:{desc_d} \n<b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
