@@ -228,8 +228,60 @@ class SborDannih:
                 desc = f"SELL: {triggered_desc_sell_5min}"
         return is_buy, is_sell, desc
 
-    def _filtr_ozenki_strategy_telega_day_hour(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
-        """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
+    # def _filtr_ozenki_strategy_telega_day_hour(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
+    #     """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
+    #     # фильтр SMA
+    #     sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
+    #     sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
+    #     # фильтр MACD
+    #     macd_up = data.last_macd > data.prev_macd_3
+    #     macd_down = data.last_macd < data.prev_macd_3
+    #     # фильтр RSI
+    #     rsi_up = data.last_rsi > data.prev_rsi_3
+    #     rsi_down = data.last_rsi < data.prev_rsi_3
+    #     # # фильтр Боллинджер
+    #     # close_below_boll = data.close < data.mid_bollinger
+    #     # close_above_boll = data.close > data.mid_bollinger
+    #     # фильтр объёма
+    #     v, m = data.volume, data.mean_volume
+    #     if v > 2.0 * m:
+    #         vol_txt = "высокий"
+    #     elif v > m:
+    #         vol_txt = "выше средн"
+    #     elif v >= 0.5 * m:
+    #         vol_txt = "средн"
+    #     else:
+    #         vol_txt = "низкий"
+    #     # текстовые описания индикаторов (чтобы не дублировать)
+    #     # macd_txt = "MACD↑" if macd_up else ("MACD↓" if macd_down else "MACD→")
+    #     macd_txt = f"MACD{'↑' if macd_up else ('↓' if macd_down else '→')} {'>0' if data.last_macd > 0 else '<0'}"
+    #     vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
+    #     rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
+    #
+    #     is_buy, is_sell = False, False
+    #     desc = ""
+    #
+    #     if tf_name == "day":
+    #         if sma_up:
+    #             is_buy = True
+    #             desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
+    #         elif sma_down:
+    #             is_sell = True
+    #             desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
+    #
+    #     elif tf_name == "hour":
+    #         if sma_up and (data.prev_rsi < data.last_rsi < 65):
+    #             is_buy = True
+    #             desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
+    #         elif sma_down and (35 < data.last_rsi < data.prev_rsi):
+    #             is_sell = True
+    #             desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
+    #
+    #     return is_buy, is_sell, desc
+
+    def _filtr_ozenki_strategy_telega_day_hour(self, tf_name: str, data: IndicatorData) -> tuple[
+        bool, bool, float, str]:
+        """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, score, description)"""
         # фильтр SMA
         sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
@@ -239,28 +291,34 @@ class SborDannih:
         # фильтр RSI
         rsi_up = data.last_rsi > data.prev_rsi_3
         rsi_down = data.last_rsi < data.prev_rsi_3
-        # # фильтр Боллинджер
-        # close_below_boll = data.close < data.mid_bollinger
-        # close_above_boll = data.close > data.mid_bollinger
         # фильтр объёма
         v, m = data.volume, data.mean_volume
         if v > 2.0 * m:
             vol_txt = "высокий"
+            vol_score = 1.0
         elif v > m:
             vol_txt = "выше средн"
+            vol_score = 0.5
         elif v >= 0.5 * m:
             vol_txt = "средн"
+            vol_score = 0.0
         else:
             vol_txt = "низкий"
-        # текстовые описания индикаторов (чтобы не дублировать)
-        # macd_txt = "MACD↑" if macd_up else ("MACD↓" if macd_down else "MACD→")
+            vol_score = -1.0
+        # текстовые описания индикаторов
         macd_txt = f"MACD{'↑' if macd_up else ('↓' if macd_down else '→')} {'>0' if data.last_macd > 0 else '<0'}"
         vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
         rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
-
+        # === Расчёт score ===
+        ydelnii_ves = {'sma': 0.25, 'rsi_d': 0.15, 'macd_s': 0.20, 'macd_d': 0.15, 'vol': 0.25}
+        score = 0.0
+        score += ydelnii_ves['sma'] * (1 if sma_up else (-1 if sma_down else 0))
+        score += ydelnii_ves['rsi_d'] * (1 if rsi_up else (-1 if rsi_down else 0))
+        score += ydelnii_ves['macd_s'] * (1 if data.last_macd > 0 else -1)
+        score += ydelnii_ves['macd_d'] * (1 if macd_up else (-1 if macd_down else 0))
+        score += ydelnii_ves['vol'] * vol_score
         is_buy, is_sell = False, False
         desc = ""
-
         if tf_name == "day":
             if sma_up:
                 is_buy = True
@@ -268,7 +326,6 @@ class SborDannih:
             elif sma_down:
                 is_sell = True
                 desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
-
         elif tf_name == "hour":
             if sma_up and (data.prev_rsi < data.last_rsi < 65):
                 is_buy = True
@@ -276,8 +333,7 @@ class SborDannih:
             elif sma_down and (35 < data.last_rsi < data.prev_rsi):
                 is_sell = True
                 desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
-
-        return is_buy, is_sell, desc
+        return is_buy, is_sell, score, desc
 
     # ==================КОНЕЦ ФИЛЬТР СТРАТЕГИЙ (ОЦЕНКА ТАЙМФРЕЙМА)===============
     # ==================НАЧАЛО СТРАТЕГИЙ ================
@@ -336,8 +392,8 @@ class SborDannih:
         """Стратегия телеграм условие для Day, Hour"""
         try:
             # 1. Оцениваем каждый таймфрейм отдельно
-            buy_d, sell_d, desc_d = self._filtr_ozenki_strategy_telega_day_hour("day", data_day)
-            buy_h, sell_h, desc_h = self._filtr_ozenki_strategy_telega_day_hour("hour", data_hour)
+            buy_d, sell_d, score_d,desc_d = self._filtr_ozenki_strategy_telega_day_hour("day", data_day)
+            buy_h, sell_h, score_h,desc_h = self._filtr_ozenki_strategy_telega_day_hour("hour", data_hour)
             # 2. Проверяем строгий конфлюенс (все день и час должны быть True)
             # ==========Для телеграмма молния =============
             if buy_d and buy_h:
@@ -345,7 +401,9 @@ class SborDannih:
                     "figi": figi,
                     "action": "buy",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
-                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n <b>ЧАС</b>:{desc_h}",
+                    "score_hour": score_h,
+                    "score": f"счет день📅{score_d:+.2f},час⏱️{score_h:+.2f},итого🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
+                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n<b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {
@@ -361,7 +419,9 @@ class SborDannih:
                     "figi": figi,
                     "action": "sell",
                     "strategy": "ТЕЛЕГРАММ ДЕНЬ+ЧАС",
-                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n <b>ЧАС</b>:{desc_h}",
+                    "score_hour":score_h,
+                    "score": f"счет день📅{score_d:+.2f},час⏱️{score_h:+.2f},итого🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
+                    "description": f"<b>ДЕНЬ</b>:{desc_d} \n<b>ЧАС</b>:{desc_h}",
                     "indicators": {
                         "day": {"rsi": round(data_day.last_rsi, 2), "sma": round(data_day.last_sma_10_1, 2)},
                         "hour": {"rsi": round(data_hour.last_rsi, 2), "sma": round(data_hour.last_sma_10_1, 2)},
@@ -377,7 +437,7 @@ class SborDannih:
                 #     f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}")
 
         except Exception as e:
-            system_log.error(f"{tiker} - SborDannih telega_confluence_day_hour() ошибка: {e}")
+            system_log.error(f"{tiker} - SborDannih strategy_telega_day_hour ошибка: {e}")
 
     # ==================КОНЕЦ СТРАТЕГИЙ =================
 
@@ -395,14 +455,14 @@ class SborDannih:
 
 
 class PrivlicatelnostChitaemost:
-    def __init__(self, signals: dict, sort_by_hour_rsi: bool = True, reverse: bool = False):
+    def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = False):
         """signals: словарь тикеров   sort_by_hour_rsi: если True — сортируем по RSI hour в конструкторе
         reverse True - по убыванию RSI"""
-        if sort_by_hour_rsi:
+        if sort_by_score_hour:
             self.signals = dict(
                 sorted(
                     signals.items(),
-                    key=lambda item: item[1]["indicators"]["hour"]["rsi"],
+                    key=lambda item: item[1]["score_hour"],
                     reverse=reverse,
                 )
             )
@@ -415,7 +475,7 @@ class PrivlicatelnostChitaemost:
         for ticker, data in self.signals.items():
             # d = data["indicators"]["day"]
             # h = data["indicators"]["hour"]
-            lines.append(f"👉 <b>{ticker}</b>\n{data['description']}\nСОПУТСТВУЮЩИЕ СДЕСЬ\n")
+            lines.append(f"👉 <b>{ticker}</b>\n{data['score']}\n{data['description']}\nСОПУТСТВУЮЩИЕ СДЕСЬ\n")
             # f"Д:RSI:{d['rsi']:.1f}\n"
             # f"Ч:RSI:{h['rsi']:.1f}\n"
         text = "\n".join(lines)

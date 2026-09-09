@@ -70,6 +70,8 @@ class TelegramOtpravka:
             # Пример обработки данных (раскомментируйте при необходимости)
             # if tupl:
             #     keys = tupl.keys() if isinstance(tupl, dict) else [tupl]
+            debug_log.info(molnia_buy)
+            debug_log.info(molnia_sell)
             self.client.send_message(self.group, f"🟢ПОКУПКА ⚡️МОЛНИЯ⚡️ {molnia_buy}")
             self.client.send_message(self.group, f"🔴ПРОДАЖА ⚡️МОЛНИЯ⚡️ {molnia_sell}")
             self.client.send_message(self.group, f"🟢ПОКУПКА 🦾ТЕРМИНАТОР🦾{cuber_buy}")
