@@ -73,47 +73,27 @@ if __name__ == "__main__":
                 except Exception as e:
                     system_log.critical(f"Крит ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
                     continue  # Переходим к следующему тику, не ломая весь цикл
-        debug_log.info(f"Telega покупка : {sbor_dannich.buy_itog_d_h}")
-        debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
-        debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
-        debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
-        # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
-        # print(tupl)
-        # debug_log.critical(f"**********{tupl}***********")
-        with TelegramOtpravka() as tg:
-            # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
-            # в телегу отправлять по нужной форме
-            tg.send_telegram(
-                molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
-                molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
-                                                      reverse=True).format_signals_to_tuple(),
-                cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
+            debug_log.info(f"Telega покупка : {sbor_dannich.buy_itog_d_h}")
+            debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
+            debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
+            debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
+            # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
+            # print(tupl)
+            # debug_log.critical(f"**********{tupl}***********")
+            with TelegramOtpravka() as tg:
+                # перед отправкой в словарь нужно его расчитывать на удельную заинтересованность и фильтровать
+                # в телегу отправлять по нужной форме
+                tg.send_telegram(
+                    molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
+                    molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
+                                                          reverse=True).format_signals_to_tuple(),
+                    cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
 
-        # ===========НАЧАЛО ПОКУПКА ======================
-        yze_kupleno = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services).already_exist()
-        print(yze_kupleno)
-        # ===========КОНЕЦ ПОКУПКА =======================
-        # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
-        time.sleep(120)
+            # ===========НАЧАЛО ПОКУПКА ======================
+            yze_kupleno = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services).already_exist()
+            print(f"==============={yze_kupleno}")
+            # ===========КОНЕЦ ПОКУПКА =======================
+            # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров
+            time.sleep(120)
 
     # ==========КОНЕЦ СБОР ДАННЫХ============
-
-    # ==========НАЧАЛО ПРОВЕРКА ЛОГИРОВАНИЯ===========
-    # # line = "2026-09-03 09:19:09 | CRITICAL | Trade | critical"
-    # # # 1. Вес в UTF-8 (для расчета места на диске/в логах)
-    # # print(len(line.encode('utf-8')))
-    # a=0
-    # while a<10000:
-    #     a=a+3
-    #     trade_log.debug(f"debug - ======================================================================{a}")
-    #     system_log.debug(f"debug - ======================================================================{a}")
-    #     system_log.info(f"info - ======================================================================{a + 1}")
-    #     system_log.warning(f"warning - ======================================================================{a + 2}")
-    #     debug_log.info(f"warning - ======================================================================{a + 2}")
-
-    # ==========КОНЕЦ ПРОВЕРКА ЛОГИРОВАНИЯ============
-
-
-
-
-
