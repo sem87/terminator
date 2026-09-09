@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from t_tech.invest import CandleInterval, Client
 from t_tech.invest.utils import now
 from ta.momentum import RSIIndicator
-from ta.trend import MACD, SMAIndicator  # Раскомментируйте ваши импорты ta
+from ta.trend import MACD, SMAIndicator
 from ta.volatility import BollingerBands
 
 from log.logicuber import system_log, trade_log
@@ -35,7 +35,7 @@ class IndicatorData:
     last_sma_10_3: float
     last_sma_10_4: float
     close: float
-    mid_bollinger: float  # Исправлена опечатка (было midle)
+    mid_bollinger: float
     volume: float
     mean_volume: float
 
@@ -117,7 +117,6 @@ class SborDannih:
         try:
             # 1. Безопасная копия
             work_df = df.copy()
-            # print(work_df.all())
             work_df["Время"] = pd.to_datetime(work_df["Время"])
             work_df.set_index("Время", inplace=True)
             # 2. Расчет индикаторов (библиотека ta)
@@ -146,7 +145,6 @@ class SborDannih:
                 volume=float(work_df["Объем"].iloc[-1]),
                 mean_volume=float(work_df["Объем"].iloc[-10:].mean()),
             )
-
         except Exception as e:
             system_log.error(
                 f"{tiker} - SborDannih в calculate_indicator() (может следствие пустого дата фрейма)ошибка: {e}"
@@ -228,56 +226,6 @@ class SborDannih:
                 desc = f"SELL: {triggered_desc_sell_5min}"
         return is_buy, is_sell, desc
 
-    # def _filtr_ozenki_strategy_telega_day_hour(self, tf_name: str, data: IndicatorData) -> tuple[bool, bool, str]:
-    #     """Оценивает сигналы для одного таймфрейма. Возвращает (is_buy, is_sell, description)"""
-    #     # фильтр SMA
-    #     sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
-    #     sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
-    #     # фильтр MACD
-    #     macd_up = data.last_macd > data.prev_macd_3
-    #     macd_down = data.last_macd < data.prev_macd_3
-    #     # фильтр RSI
-    #     rsi_up = data.last_rsi > data.prev_rsi_3
-    #     rsi_down = data.last_rsi < data.prev_rsi_3
-    #     # # фильтр Боллинджер
-    #     # close_below_boll = data.close < data.mid_bollinger
-    #     # close_above_boll = data.close > data.mid_bollinger
-    #     # фильтр объёма
-    #     v, m = data.volume, data.mean_volume
-    #     if v > 2.0 * m:
-    #         vol_txt = "высокий"
-    #     elif v > m:
-    #         vol_txt = "выше средн"
-    #     elif v >= 0.5 * m:
-    #         vol_txt = "средн"
-    #     else:
-    #         vol_txt = "низкий"
-    #     # текстовые описания индикаторов (чтобы не дублировать)
-    #     # macd_txt = "MACD↑" if macd_up else ("MACD↓" if macd_down else "MACD→")
-    #     macd_txt = f"MACD{'↑' if macd_up else ('↓' if macd_down else '→')} {'>0' if data.last_macd > 0 else '<0'}"
-    #     vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
-    #     rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
-    #
-    #     is_buy, is_sell = False, False
-    #     desc = ""
-    #
-    #     if tf_name == "day":
-    #         if sma_up:
-    #             is_buy = True
-    #             desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
-    #         elif sma_down:
-    #             is_sell = True
-    #             desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
-    #
-    #     elif tf_name == "hour":
-    #         if sma_up and (data.prev_rsi < data.last_rsi < 65):
-    #             is_buy = True
-    #             desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
-    #         elif sma_down and (35 < data.last_rsi < data.prev_rsi):
-    #             is_sell = True
-    #             desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
-    #
-    #     return is_buy, is_sell, desc
 
     def _filtr_ozenki_strategy_telega_day_hour(self, tf_name: str, data: IndicatorData) -> tuple[
         bool, bool, float, str]:
@@ -431,11 +379,6 @@ class SborDannih:
             # ==========Для телеграмма молния =============
             else:
                 pass
-                # logger.debug(
-                #     f"{tiker} - Конфлюенс не достигнут."
-                #     f" День:buy={buy_d}/sell={sell_d}-описание {desc_d}=======Данные - {data_day.close}"
-                #     f" Час:buy={buy_h}/sell={sell_h}-описание {desc_h}=======Данные - {data_hour.close}")
-
         except Exception as e:
             system_log.error(f"{tiker} - SborDannih strategy_telega_day_hour ошибка: {e}")
 
