@@ -247,13 +247,13 @@ class SborDannih:
         vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
         rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
         # === Расчёт score ===
-        ydelnii_ves = {'sma': 0.25, 'rsi_d': 0.15, 'macd_s': 0.20, 'macd_d': 0.15, 'vol': 0.25}
+        ydelnii_ves = {'sma': 0.3, 'rsi_d': 0.2, 'macd_d': 0.2, 'vol': 0.3}   # , 'macd_s': 0.20
         score = 0.0
-        score += ydelnii_ves['sma'] * (1 if sma_up else (-1 if sma_down else 0))
-        score += ydelnii_ves['rsi_d'] * (1 if rsi_up else (-1 if rsi_down else 0))
-        score += ydelnii_ves['macd_s'] * (1 if data.last_macd > 0 else -1)
-        score += ydelnii_ves['macd_d'] * (1 if macd_up else (-1 if macd_down else 0))
-        score += ydelnii_ves['vol'] * vol_score
+        score += ydelnii_ves['sma'] * (1 if sma_up else (-1 if sma_down else 0))  # +
+        score += ydelnii_ves['rsi_d'] * (1 if rsi_up else (-1 if rsi_down else 0)) # + на часе <65 отсекается автоматически
+        # score += ydelnii_ves['macd_s'] * (1 if data.last_macd > 0 else -1)   # сдесь нужно исправить похоже >0 нужно только на 5 мин а сдесь сделать наоборот
+        score += ydelnii_ves['macd_d'] * (1 if macd_up else (-1 if macd_down else 0))  # +
+        score += ydelnii_ves['vol'] * vol_score   # +
         is_buy, is_sell = False, False
         desc = ""
         if tf_name == "day":
@@ -264,10 +264,10 @@ class SborDannih:
                 is_sell = True
                 desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
         elif tf_name == "hour":
-            if sma_up and (rsi_up < 65):
+            if sma_up and data.prev_rsi_3<data.last_rsi< 65:
                 is_buy = True
                 desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
-            elif sma_down and (35 < rsi_down):
+            elif sma_down and  35<data.last_rsi<data.prev_rsi_3:    # rsi_down
                 is_sell = True
                 desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
         return is_buy, is_sell, score, desc
@@ -338,6 +338,7 @@ class SborDannih:
                     "figi": figi,
                     "action": "buy",
                     "strategy": "ТЕЛЕГА ДЕНЬ↑+ЧАС(↑+rsi_up<65)",
+                    "score_day": score_d,
                     "score_hour": score_h,
                     "score": f"счет Д📅{score_d:+.2f},Ч⏱️{score_h:+.2f},ИТОГ🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
                     "description": f"<b>ДЕНЬ</b>:{desc_d}\n<b>ЧАС</b>:{desc_h}",
@@ -358,6 +359,7 @@ class SborDannih:
                     "figi": figi,
                     "action": "sell",
                     "strategy": "ТЕЛЕГА ДЕНЬ↓+ЧАС(↓+35<rsi_down)",
+                    "score_day": score_d,
                     "score_hour": score_h,
                     "score": f"счет Д📅{score_d:+.2f},Ч⏱️{score_h:+.2f},ИТОГ🎯{score_d * 0.6 + score_h * 0.4:+.2f}",
                     "description": f"<b>ДЕНЬ</b>:{desc_d}\n<b>ЧАС</b>:{desc_h}",
@@ -394,15 +396,18 @@ class SborDannih:
 
 
 class PrivlicatelnostChitaemost:
-    def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = False):
-        """signals: словарь тикеров   sort_by_hour_rsi: если True — сортируем по RSI hour в конструкторе
-        reverse True - по убыванию RSI"""
+    # def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = False):
+    def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = True):
+        """signals: словарь тикеров   sort_by_score_hour: если True — сортируем score по убыванию час а потом день"""
         if sort_by_score_hour:
             self.signals = dict(
                 sorted(
                     signals.items(),
-                    key=lambda item: item[1]["score_hour"],
-                    reverse=reverse,
+                    key=lambda item: (
+                        item[1]["score_hour"],
+                        item[1]["score_day"],
+                    ),
+                    reverse=reverse,  # True = оба по убыванию
                 )
             )
         else:
@@ -425,3 +430,7 @@ class PrivlicatelnostChitaemost:
 
 if __name__ == "__main__":
     pass
+
+
+
+
