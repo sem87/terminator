@@ -232,6 +232,8 @@ class SborDannih:
         # фильтр SMA
         sma_up = data.last_sma_10_3 < data.last_sma_10_2 < data.last_sma_10_1
         sma_down = data.last_sma_10_1 < data.last_sma_10_2 < data.last_sma_10_3
+        # Направление тренда: 1 (рост), -1 (падение), 0 (флэт)   НУЖЕН ЛИ МНЕ ФЛЭТ!!!!
+        trend_dir = 1 if sma_up else (-1 if sma_down else 0)
         # фильтр MACD
         macd_up = data.last_macd > data.prev_macd_3
         macd_down = data.last_macd < data.prev_macd_3
@@ -253,7 +255,9 @@ class SborDannih:
         score += ydelnii_ves['rsi_d'] * (1 if rsi_up else (-1 if rsi_down else 0)) # + на часе <65 отсекается автоматически
         # score += ydelnii_ves['macd_s'] * (1 if data.last_macd > 0 else -1)   # сдесь нужно исправить похоже >0 нужно только на 5 мин а сдесь сделать наоборот
         score += ydelnii_ves['macd_d'] * (1 if macd_up else (-1 if macd_down else 0))  # +
-        score += ydelnii_ves['vol'] * vol_score   # +
+        # score += ydelnii_ves['vol'] * vol_score   # при продаже обьем должен вычитаться ведь??????
+        # Умножаем на направление тренда
+        score += ydelnii_ves['vol'] * vol_score * trend_dir
         is_buy, is_sell = False, False
         desc = ""
         if tf_name == "day":
