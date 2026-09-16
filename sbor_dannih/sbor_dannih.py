@@ -399,7 +399,7 @@ class SborDannih:
         return "ЭТО КЛАСС СБОР ДАННЫХ"
 
 
-class PrivlicatelnostChitaemost:
+class PrivlicatelnostChitaemost:    # Почему кгда на продажу то фильтрует от большего к меньшему
     # def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = False):
     def __init__(self, signals: dict, sort_by_score_hour: bool = True, reverse: bool = True):
         """signals: словарь тикеров   sort_by_score_hour: если True — сортируем score по убыванию час а потом день"""
