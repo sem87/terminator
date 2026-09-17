@@ -9,6 +9,9 @@ from t_tech.invest.utils import now
 from ta.momentum import RSIIndicator
 from ta.trend import MACD, SMAIndicator
 from ta.volatility import BollingerBands
+# from ta.volume import VolumeWeightedAveragePrice
+# from ta.volume import VolumeWeightedAveragePriceIndicator
+from ta.volume import VolumeWeightedAveragePrice
 
 from log.logicuber import system_log, trade_log
 
@@ -37,6 +40,7 @@ class IndicatorData:
     mid_bollinger: float
     volume: float
     mean_volume: float
+    last_vwap: float
 
 
 class SborDannih:
@@ -116,6 +120,7 @@ class SborDannih:
         try:
             # 1. Безопасная копия
             work_df = df.copy()
+            # print(work_df)
             work_df["Время"] = pd.to_datetime(work_df["Время"])
             work_df.set_index("Время", inplace=True)
             # 2. Расчет индикаторов (библиотека ta)
@@ -125,6 +130,31 @@ class SborDannih:
                 close=work_df["Закрытие"], window_slow=26, window_fast=12, window_sign=9
             ).macd_diff()
             work_df["bb_middle"] = BollingerBands(close=work_df["Закрытие"], window=20, window_dev=2).bollinger_mavg()
+            # --- НАЧАЛО УНИВЕРСАЛЬНЫЙ VWAP ---
+            is_daily = all(work_df.index.time == pd.Timestamp("00:00:00").time())
+            if is_daily:
+                # Дневки — скользящий VWAP (окно 20)
+                work_df["VWAP"] = VolumeWeightedAveragePrice(
+                    high=work_df["МАХ"],
+                    low=work_df["MIN"],
+                    close=work_df["Закрытие"],
+                    volume=work_df["Объем"],
+                    window=20,
+                ).volume_weighted_average_price()
+            else:
+                # Интрадей (1ч, 5мин) — VWAP с ежедневным сбросом
+                work_df["Дата"] = work_df.index.date
+                work_df["VWAP"] = work_df.groupby("Дата").apply(
+                    lambda g: VolumeWeightedAveragePrice(
+                        high=work_df.loc[g.index, "МАХ"],
+                        low=work_df.loc[g.index, "MIN"],
+                        close=g["Закрытие"],
+                        volume=g["Объем"],
+                        window=1,
+                    ).volume_weighted_average_price(),
+                    include_groups=False,
+                ).reset_index(level=0, drop=True)
+            # ---------- КОНЕЦ УНИВЕРСАЛЬНЫЙ VWAP  -----------------
             # 3. Формирование и возврат результата (имена полей строго совпадают с IndicatorData)
             return IndicatorData(
                 last_rsi=float(work_df["RSI"].iloc[-1]),
@@ -143,6 +173,7 @@ class SborDannih:
                 mid_bollinger=float(work_df["bb_middle"].iloc[-1]),
                 volume=float(work_df["Объем"].iloc[-1]),
                 mean_volume=float(work_df["Объем"].iloc[-10:].mean()),
+                last_vwap=float(work_df["VWAP"].iloc[-1]),
             )
         except Exception as e:
             system_log.error(
@@ -248,6 +279,8 @@ class SborDannih:
         macd_txt = f"MACD{'↑' if macd_up else ('↓' if macd_down else '→')}{'>0' if data.last_macd > 0 else '<0'}"
         vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
         rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
+        # Пока нужно узнать что это за last_vwap потом буду брать в расчет
+        posl_vwap = f"{'close>VWAP-лонг' if data.close>data.last_vwap else ('close<VWAP—шорт' if data.close<data.last_vwap else 'Разобраться с VWAP')}={data.last_vwap:.1f}"
         # === Расчёт score ===
         ydelnii_ves = {'sma': 0.3, 'rsi_d': 0.2, 'macd_d': 0.2, 'vol': 0.3}   # , 'macd_s': 0.20
         score = 0.0
@@ -263,17 +296,17 @@ class SborDannih:
         if tf_name == "day":
             if sma_up:
                 is_buy = True
-                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
+                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
             elif sma_down:
                 is_sell = True
-                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
+                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
         elif tf_name == "hour":
             if sma_up and data.prev_rsi_3<data.last_rsi< 65:
                 is_buy = True
-                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}"
+                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
             elif sma_down and  35<data.last_rsi<data.prev_rsi_3:    # rsi_down
                 is_sell = True
-                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}"
+                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
         return is_buy, is_sell, score, desc
 
     # ==================КОНЕЦ ФИЛЬТР СТРАТЕГИЙ (ОЦЕНКА ТАЙМФРЕЙМА)===============
