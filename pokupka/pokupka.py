@@ -16,6 +16,8 @@ class BuySellAktiv:
     def __init__(self, client, services, summa_pokupki: float = 6600.0) -> None:
         self.client = client
         self.services = services
+        # print(f"::::::::::::клиент прямо в классе {self.client}")
+        # print(f"::::::::::сервисес прямо в классе {self.services}")
         self.summa_pokupki = float(summa_pokupki)
         self.account_id = os.getenv("AOCID")
         if not self.account_id:
@@ -138,20 +140,44 @@ class BuySellAktiv:
             # 3. ГЕНЕРАЦИЯ УНИКАЛЬНОГО order_id ДЛЯ ИДЕМПОТЕНТНОСТИ
             order_id = str(uuid.uuid4())
             try:
-                print(f"ОРДЕРА figi {figi} кол-во{quantity}  id - {self.account_id}  ордер {order_id}")
+                # print(f"ОРДЕРА figi {figi} кол-во{quantity}  id - {self.account_id}  ордер {order_id}")
                 # 4. ВЫСТАВЛЕНИЕ РЫНОЧНОГО ОРДЕРА НА ПОКУПКУ
-                self.client.orders.post_order(
-                    instrument_id=figi,
-                    id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
-                    quantity=quantity,
-                    account_id=self.account_id,
-                    direction=OrderDirection.ORDER_DIRECTION_BUY,
-                    order_type=OrderType.ORDER_TYPE_MARKET,
-                    order_id=order_id, # order_id
-                )
+                # self.client.orders.post_order(
+                #     instrument_id=figi,
+                #     id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
+                #     quantity=quantity,
+                #     account_id=self.account_id,
+                #     direction=OrderDirection.ORDER_DIRECTION_BUY,
+                #     order_type=OrderType.ORDER_TYPE_MARKET,
+                #     order_id=order_id, # order_id
+                # )
 
-                trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН - {tiker}. Кол-во: {quantity}")
-                time.sleep(25)
+                try:
+
+
+                    response = self.services.orders.post_order(
+                        figi=figi,
+                        quantity=quantity,
+                        direction=OrderDirection.ORDER_DIRECTION_BUY,
+                        order_type=OrderType.ORDER_TYPE_MARKET,
+                        account_id=self.account_id,  # Убедись, что ты передаешь это при создании BuySellAktiv
+                        order_id=order_id
+                    )
+
+                    print(f"Ответ: {response}")
+                    trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН - {tiker}. Кол-во: {quantity}")
+
+                except AttributeError:
+                    print("Метод post_order не найден в client")
+                    print(f"Доступные методы: {[m for m in dir(self.client) if not m.startswith('_')]}")
+
+                except Exception as e:
+                    print(f"Ошибка: {e}")
+                    trade_log.error(f"Ошибка ордера {tiker}: {e}")
+
+
+                # trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН - {tiker}. Кол-во: {quantity}")
+                # time.sleep(25)
 
 
 
