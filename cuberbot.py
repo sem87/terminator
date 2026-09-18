@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # ==========НАЧАЛО СБОР ДАННЫХ===========
 
     while True:
-        with SborDannih() as sbor_dannich:
+        with (SborDannih() as sbor_dannich):
             # 1. Очищаем итоговые словари перед новым кругом, чтобы не копился мусор
             sbor_dannich.cleaning_dict()
             # debug_log.debug(f"продажа ===== {sbor_dannich.sale_itog}")
@@ -39,74 +39,84 @@ if __name__ == "__main__":
             # debug_log.debug(f"покупка ===== {sbor_dannich.buy_itog}")
             # debug_log.debug(f"покупка ===== {sbor_dannich.buy_itog_d_h}")
             # Достаем тикер и фиги из sqllite базы которые имеют статус "на рынке"
-            for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
-                try:
-                    # logger.info(f"Тикер - {tiker},фиги - {figi}")
-                    # 2. Собираем и рассчитываем данные для ВСЕХ таймфреймов СРАЗУ
-                    # День
-                    df_day = sbor_dannich.candl(
-                        day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker)
-                    data_day = sbor_dannich.calculate_indicator(df=df_day, tiker=tiker)
-                    # Час
-                    df_hour = sbor_dannich.candl(
-                        day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=tiker)
-                    data_hour = sbor_dannich.calculate_indicator(df=df_hour, tiker=tiker)
-                    # 5 минут
-                    df_5min = sbor_dannich.candl(
-                        day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi, tiker=tiker)
-                    data_5min = sbor_dannich.calculate_indicator(df=df_5min, tiker=tiker)
-                    # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
-                    if data_day and data_hour and data_5min:
-                        # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА! и записываем в словарь
-                        sbor_dannich.strategy_day_hour_5min(
-                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour, data_5min=data_5min)
-                        # 5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
-                        sbor_dannich.strategy_telega_day_hour(
-                            figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour)
-                    else:
-                        system_log.critical(
-                            f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
-                except Exception as e:
-                    system_log.critical(f"Крит ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
-                    continue  # Переходим к следующему тику, не ломая весь цикл
-            debug_log.info(f"Telega покупка : {sbor_dannich.buy_itog_d_h}")
-            debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
-            debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
-            debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
-            # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
-            # print(tupl)
-            # debug_log.critical(f"**********{tupl}***********")
-            with TelegramOtpravka() as tg:
-                # в телегу отправлять по нужной форме
-                tg.send_telegram(
-                    molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
-                    molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
-                                                          reverse=True).format_signals_to_tuple(),
-                    cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
 
+
+
+
+
+            # for tiker, figi in ReadTickerFigiJson().read_tiker_figi_json().items():
+            #     try:
+            #         # logger.info(f"Тикер - {tiker},фиги - {figi}")
+            #         # 2. Собираем и рассчитываем данные для ВСЕХ таймфреймов СРАЗУ
+            #         # День
+            #         df_day = sbor_dannich.candl(
+            #             day=50, interval=CandleInterval.CANDLE_INTERVAL_DAY, figi=figi, tiker=tiker)
+            #         data_day = sbor_dannich.calculate_indicator(df=df_day, tiker=tiker)
+            #         # Час
+            #         df_hour = sbor_dannich.candl(
+            #             day=7, interval=CandleInterval.CANDLE_INTERVAL_HOUR, figi=figi, tiker=tiker)
+            #         data_hour = sbor_dannich.calculate_indicator(df=df_hour, tiker=tiker)
+            #         # 5 минут
+            #         df_5min = sbor_dannich.candl(
+            #             day=1, interval=CandleInterval.CANDLE_INTERVAL_5_MIN, figi=figi, tiker=tiker)
+            #         data_5min = sbor_dannich.calculate_indicator(df=df_5min, tiker=tiker)
+            #         # 3. Проверяем, что данные успешно собрались (не вернули None из-за ошибки или пустого DF)
+            #         if data_day and data_hour and data_5min:
+            #             # 4. ВЫЗЫВАЕМ ПРОВЕРКУ КОНФЛЮЕНСА! и записываем в словарь
+            #             sbor_dannich.strategy_day_hour_5min(
+            #                 figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour, data_5min=data_5min)
+            #             # 5. Делаем расчет, записываем в словарь и отправляем инфу в телегу для молнии с расчетом кто привлекательнее
+            #             sbor_dannich.strategy_telega_day_hour(
+            #                 figi=figi, tiker=tiker, data_day=data_day, data_hour=data_hour)
+            #         else:
+            #             system_log.critical(
+            #                 f"{tiker}: Не хватило данных для расчета индикаторов на одном из таймфреймов.")
+            #     except Exception as e:
+            #         system_log.critical(f"Крит ошибка при обработке данных cuberbot в SborDannih() - {tiker}: {e}")
+            #         continue  # Переходим к следующему тику, не ломая весь цикл
+            # debug_log.info(f"Telega покупка : {sbor_dannich.buy_itog_d_h}")
+            # debug_log.info(f"Telega продажа : {sbor_dannich.sale_itog_d_h}")
+            # debug_log.info(f"strategy_day_hour_5min покупка : {sbor_dannich.buy_itog}")
+            # debug_log.info(f"strategy_day_hour_5min продажа : {sbor_dannich.sale_itog}")
+            # # tupl = PrivlicatelnostChitaemost().format_signals_to_tuple(signals=sbor_dannich.buy_itog_d_h)
+            # # print(tupl)
+            # # debug_log.critical(f"**********{tupl}***********")
+            # with TelegramOtpravka() as tg:
+            #     # в телегу отправлять по нужной форме
+            #     tg.send_telegram(
+            #         molnia_buy=PrivlicatelnostChitaemost(signals=sbor_dannich.buy_itog_d_h).format_signals_to_tuple(),
+            #         molnia_sell=PrivlicatelnostChitaemost(signals=sbor_dannich.sale_itog_d_h,
+            #                                               reverse=True).format_signals_to_tuple(),
+            #         cuber_buy=sbor_dannich.buy_itog.keys(), cuber_sell=sbor_dannich.sale_itog.keys())
+
+
+
+
+
+            # ===== "EUTR": "TCS00A1002V2"   для примера ============
             # ===========НАЧАЛО ПОКУПКА ПРОДАЖА======================
-            # # 1. Создаем экземпляр ОДИН РАЗ перед циклами
-            # buy_sell_activ = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services,summa_pokupki=6600.0)
-            #
-            # # 2. Получаем текущий портфель ОДИН РАЗ, чтобы не спамить API в цикле
-            # portfolio = buy_sell_activ.already_exist()   # что он возвращает??? почему не словарь
-            #
-            # # ***ПОКУПКА***
-            # for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog
-            #     figi = data_activ.get('figi')
-            #     trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
-            #     debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
-            #     # Проверка: не покупаем ли мы то, что уже есть
-            #     if ticker in portfolio:
-            #         debug_log.info(f"⚠️ {ticker} уже в портфеле, пропускаем.")
-            #         continue
-            #
-            #     lots = buy_sell_activ.calculation_number_lots(figi=figi, tiker=ticker)
-            #     if lots > 0:
-            #         print(f"✅ Расчет для покупки {ticker}: {lots} лотов")
-            #         # TODO: Здесь вызов функции отправки ордера на покупку
-            #     else:
-            #         print(f"❌ {ticker}: лотов для покупки не рассчитано (нет денег или ошибка)")
+            # 1. Создаем экземпляр ОДИН РАЗ перед циклами
+            buy_sell_activ = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services,summa_pokupki=60.0)  # 6600
+            # 2. Получаем текущий портфель ОДИН РАЗ, чтобы не спамить API в цикле
+            portfolio = buy_sell_activ.already_exist()   # что он возвращает??? почему не словарь
+            print(f"=========portfolio========= : {portfolio}")
+            # ***ПОКУПКА***
+            # for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog   ЭТО НЕ ВО ВРЕМЯ ТРЕНИРОВКИ
+            sale_i = {"EUTR": "TCS00A1002V2"}
+            for ticker, figi in sale_i.items():
+                # Покупаем все тикеры какие есть на покупку
+                # figi = data_activ.get('figi')   # НУЖНО ЛИ ВЕДЬ ЕСТЬ УЖЕ АКТУАЛЬНЫЙ JSON FILE
+                trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+                debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+                # Проверка: не покупаем ли мы то, что уже есть
+                if ticker in portfolio:
+                    debug_log.info(f"⚠️ {ticker} уже в портфеле, пропускаем.")
+                    continue
+                # ПОКУПАЕМ АКТИВ
+                sbor_dannich.activ_pokupka()
+
+
+
 
             # # ***ПРОДАЖА***
             # for ticker, data in sbor_dannich.sale_itog.items():
@@ -128,6 +138,9 @@ if __name__ == "__main__":
             #     else:
             #         print(f"❌ {ticker}: количество лотов равно 0, продать нельзя.")
             # ===========КОНЕЦ ПОКУПКА ПРОДАЖА=======================
+
+
+
 
 
             # Ждем 10 секунд перед следующим полным кругом проверки всех тикеров

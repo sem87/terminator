@@ -41,18 +41,17 @@ class BuySellAktiv:
 
     def calculation_number_lots(self, figi: str, tiker: str) -> int:
         """РАСЧЕТ КОЛИЧЕСТВА ЛОТОВ НА СУММУ self.summa_pokupki"""
+        # нужно проверить функцию как она округляет
         try:
             # 1. Получаем текущую цену инструмента
             last_prices = self.services.market_data.get_last_prices(figi=[figi]).last_prices
             if not last_prices:
                 system_log.warning(f"{tiker}: Не удалось получить последнюю цену.")
                 return 0
-
             current_price = _quotation_to_float(last_prices[0].price)
             if current_price <= 0:
                 system_log.warning(f"{tiker}: Некорректная цена {current_price}")
                 return 0
-
             # 2. Получаем информацию о размере лота
             instrument = self.services.instruments.get_instrument_by(
                 id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
@@ -60,41 +59,141 @@ class BuySellAktiv:
             ).instrument
             lot_size = int(instrument.lot)
             price_per_lot = current_price * lot_size
-
             # 3. Получаем доступные деньги на счете
             positions = self.services.operations.get_positions(account_id=self.account_id)
-
             available_money = 0.0
             for money in positions.money:
                 # Ищем рубли (учитываем разные варианты написания валюты)
                 if money.currency.lower() in ["rub", "rubl", "rur", ""]:
                     available_money = _quotation_to_float(money)
                     break
-
             # Если рубли не найдены, берем первый попавшийся баланс (фоллбек)
             if available_money == 0.0 and positions.money:
                 available_money = _quotation_to_float(positions.money[0])
                 system_log.warning(
                     f"{tiker}: Валюта RUB не найдена, используем баланс {positions.money[0].currency}: {available_money}")
-
             # 4. Расчет количества лотов
             # Мы не можем потратить больше, чем есть на счете, и не больше лимита summa_pokupki
             budget = min(self.summa_pokupki, available_money)
-
             if budget < price_per_lot:
                 debug_log.info(f"{tiker}: Недостаточно средств. Доступно: {budget:.2f}, Цена лота: {price_per_lot:.2f}")
                 return 0
-
             # Целочисленное деление автоматически округляет вниз до целого числа лотов
             quantity_lots = int(budget // price_per_lot)
-
             debug_log.info(
                 f"{tiker}: Цена: {current_price}, Лот: {lot_size}, Цена лота: {price_per_lot:.2f}, Бюджет: {budget:.2f}, Лотов к покупке: {quantity_lots}")
             return quantity_lots
-
         except Exception as e:
             system_log.error(f"{tiker} - BuySellAktiv calculation_number_lots() ошибка: {e}")
             return 0
+
+
+    def activ_pokupka(self, figi: str, tiker: str):
+        """ПОКУПКА АКТИВА, РАССТОНОВКА СТОП-ЛОСА И ТЕЙК-ПРОФИТА"""
+        try:
+            # УСЛОВИЯ
+            if tiker in self.already_exist():
+                """ПРОВЕРКА КУПЛЕН УЖЕ АКТИВ ИЛИ НЕТ"""
+                trade_log.info(f"{tiker} - УЖЕ КУПЛЕНО")
+            else:
+                """ПОКУПАЕМ ПО ЛУЧШЕЙ ЦЕНЕ КОТОРАЯ ЕСТЬ НА РЫНКЕ"""
+                # Расчет кол-ва лотов
+                quantity = self.calculation_number_lots(figi=figi, tiker=tiker)
+                if quantity <= 0:
+                    trade_log.info(f"НЕ КУПИЛИ - {tiker} . т.к. можно купить {quantity} шт")
+                    """НАЧАЛО САМОЙ ПОКУПКИ"""
+                else:
+                    try:
+                        # Покупаем
+                        self.client.orders.post_order(order_id="",figi=figi,quantity=quantity,
+                            account_id=self.account_id,
+                            direction=OrderDirection.ORDER_DIRECTION_BUY,  # на продажу SELL
+                            order_type=OrderType.ORDER_TYPE_MARKET,)
+                        inform.info(f"КУПИЛ - {tiker} . В КОЛИЧЕСТВЕ {quantity}")
+                    except RequestError as e:
+                        logger.info(f"{tiker} - activ_pokupka() RequestError : {e}")
+                        # Специальная обработка для ошибки 30015
+                        if e.details == 30015:
+                            logger.info(f"{tiker}-Некорректное количество лотов: {quantity} шт. Ошибка 30015")
+                    except Exception as e:
+                        logger.info(f"{tiker} - activ_pokupka() ошибка в выставлении пост ордера: Exception as e : {e}")
+                    """КОНЕЦ САМОЙ ПОКУПКИ"""
+                    time.sleep(25)  # Нужно чтобы прогрузилась покупка. ВЫЯСНИТЬ МИНИМУМ ПРОГРУЗКИ
+                    """ИНФОРМАЦИЯ О ПОЗИЦИИ НА СЧЕТЕ.ЗА СКОЛЬКО КУПИЛИ И ЛОТНОСТЬ"""
+                    # Получаем информацию о позициях на счёте
+                    positions = cl.operations.get_portfolio(account_id=accid).positions
+                    # Ищем нужный инструмент по FIGI
+                    for position in positions:
+                        if position.figi == figi:
+                            average_price = position.average_position_price  # Средняя цена покупки (MoneyValue)
+                            quantity_lots = position.quantity_lots  # Количество лотов (Decimal)
+                            # Конвертируем MoneyValue в Decimal
+                            price_rub = Decimal(average_price.units + average_price.nano / 1e9)
+                            quantity_lots_new = int(quantity_lots.units + quantity_lots.nano / 1e9)  # переделать
+                            """КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ НА СЧЕТЕ.ЗА СКОЛЬКО КУПИЛИ И ЛОТНОСТЬ"""
+                            time.sleep(2)
+                            schag = opredelaem_schag(cl=cl, figi=figi, tiker=tiker)
+                            # """НАЧАЛО ТЕЙК-ПРОФИТ ЗАЯВКИ"""  # продажа при достижении take_profit_price
+                            # coeff_take_profit_price = Decimal(1.05)
+                            # cl.stop_orders.post_stop_order(
+                            #     figi=figi,
+                            #     quantity=quantity_lots_new,  # Количество лотов
+                            #     price=decimal_to_quotation(
+                            #         ((price_rub * coeff_take_profit_price) / schag).quantize(
+                            #             Decimal("1"), rounding=ROUND_HALF_UP
+                            #         )
+                            #         * schag
+                            #     ),
+                            #     stop_price=decimal_to_quotation(
+                            #         ((price_rub * coeff_take_profit_price) / schag).quantize(
+                            #             Decimal("1"), rounding=ROUND_HALF_UP
+                            #         )
+                            #         * schag
+                            #     ),
+                            #     # Стоп-цена заявки за 1 инструмент
+                            #     direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
+                            #     account_id=accid,
+                            #     expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
+                            #     stop_order_type=StopOrderType.STOP_ORDER_TYPE_TAKE_PROFIT,
+                            # )  # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
+                            # # instrument_id = StopOrdersService
+                            # inform.info(
+                            #     f"ТЕЙК-ПРОФИТ-{tiker}->ЦЕН{round((price_rub * coeff_take_profit_price / schag) * schag, 3)}"
+                            #     f" В КОЛИЧЕСТВЕ {quantity_lots_new}"
+                            # )
+                            # """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
+                            # """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
+                            # # Стоп-лимит заявка (продажа при достижении take_profit_price)
+                            # coeff_stop_loss_price = Decimal(0.9966)  # СДЕЛАЕМ W/R 1:1 (0,34%)
+                            # cl.stop_orders.post_stop_order(
+                            #     figi=figi,
+                            #     quantity=quantity_lots_new,  # Количество лотов
+                            #     price=decimal_to_quotation(
+                            #         ((price_rub * coeff_stop_loss_price) / schag).quantize(
+                            #             Decimal("1"), rounding=ROUND_HALF_UP
+                            #         )
+                            #         * schag
+                            #     ),
+                            #     stop_price=decimal_to_quotation(
+                            #         ((price_rub * coeff_stop_loss_price) / schag).quantize(
+                            #             Decimal("1"), rounding=ROUND_HALF_UP
+                            #         )
+                            #         * schag
+                            #     ),
+                            #     # Стоп-цена заявки за 1 инструмент/
+                            #     direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
+                            #     account_id=accid,
+                            #     expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
+                            #     stop_order_type=StopOrderType.STOP_ORDER_TYPE_STOP_LOSS,
+                            # )  # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
+                            # inform.info(
+                            #     f"СТОП-ЛИМИТ-{tiker}->ЦЕНА {round((price_rub * coeff_stop_loss_price / schag) * schag, 3)}"
+                            #     f" В КОЛИЧЕСТВЕ {quantity_lots_new}"
+                            # )
+                            # """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
+                    """КОНЕЦ РАСЧИТАЕМ И ВЫСТАВИМ СТОП-ЛОСС И ТЕЙК-ПРОФИТ"""
+        except Exception as e:
+            logger.info(f"{tiker} - activ_pokupka() ошибка при покупки актива : Exception as e : {e}")
 
 
 
