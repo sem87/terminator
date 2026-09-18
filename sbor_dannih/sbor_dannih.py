@@ -293,20 +293,22 @@ class SborDannih:
         vol_block = f"Обьем:{vol_txt}({v / m:.2f})"
         rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
         # Пока нужно узнать что это за last_vwap потом буду брать в расчет
-        posl_vwap = f"{'close>VWAP-лонг' if data.close>data.last_vwap else ('close<VWAP—шорт' if data.close<data.last_vwap else 'Разобраться с VWAP')}={data.last_vwap:.1f}"
+        #posl_vwap = f"{'close>VWAP-лонг' if data.close>data.last_vwap else ('close<VWAP—шорт' if data.close<data.last_vwap else 'Разобраться с VWAP')}={data.last_vwap:.1f}"
+        posl_vwap = "!!!"
         # --- BB Боллинджер ---  Боллинджер на пробу
-        bb_pos = "выш_ср_BB" if data.close > data.mid_bollinger else "ниж_ср_BB"
-        # Сходимость/расходимость: сравниваем текущую ширину с предыдущими
+        bb_pos = f"{' выш_ср_BB' if data.close > data.mid_bollinger else ' ниж_ср_BB'}"
+        # Сходимость/расходимость
         bb_w = data.upper_bollinger - data.lower_bollinger
         bb_w_prev = data.prev_bb_width
         bb_w_prev2 = data.prev_bb_width_2
         if bb_w < bb_w_prev < bb_w_prev2:
-            bb_txt = "BB⊃(сжатие)готовн прорыв"  # полосы сходятся — готовность к пробою
+            bb_txt = "BB⊃(сжатие)готовн прорыв"
         elif bb_w > bb_w_prev > bb_w_prev2:
-            bb_txt = "BB⊂(расширение)тренд усилив начался импульс"  # полосы расходятся — тренд усиливается
+            bb_txt = "BB⊂(расширение)тренд усилив начался импульс"
         else:
             bb_txt = "BB→(нейтрально)"
         bb_block = f"{bb_txt};close{bb_pos};разн_BB={bb_w:.2f};средн_BB={data.mid_bollinger:.2f}"
+        # bb_block = "!!!!!"
         # === Расчёт score    подумать включать сюда боллинджер и wap или нет===
         ydelnii_ves = {'sma': 0.3, 'rsi_d': 0.2, 'macd_d': 0.2, 'vol': 0.3}   # , 'macd_s': 0.20
         score = 0.0
