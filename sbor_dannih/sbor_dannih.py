@@ -38,6 +38,10 @@ class IndicatorData:
     last_sma_10_4: float
     close: float
     mid_bollinger: float
+    upper_bollinger: float
+    lower_bollinger: float
+    prev_bb_width: float
+    prev_bb_width_2: float
     volume: float
     mean_volume: float
     last_vwap: float
@@ -129,7 +133,12 @@ class SborDannih:
             work_df["MACD_Hist"] = MACD(
                 close=work_df["Закрытие"], window_slow=26, window_fast=12, window_sign=9
             ).macd_diff()
-            work_df["bb_middle"] = BollingerBands(close=work_df["Закрытие"], window=20, window_dev=2).bollinger_mavg()
+            # work_df["bb_middle"] = BollingerBands(close=work_df["Закрытие"], window=20, window_dev=2).bollinger_mavg()
+            bb = BollingerBands(close=work_df["Закрытие"], window=20, window_dev=2)
+            work_df["bb_middle"] = bb.bollinger_mavg()
+            work_df["bb_upper"] = bb.bollinger_hband()
+            work_df["bb_lower"] = bb.bollinger_lband()
+            work_df["bb_width"] = work_df["bb_upper"] - work_df["bb_lower"]
             # --- НАЧАЛО УНИВЕРСАЛЬНЫЙ VWAP ---
             is_daily = all(work_df.index.time == pd.Timestamp("00:00:00").time())
             if is_daily:
@@ -171,6 +180,10 @@ class SborDannih:
                 last_sma_10_4=float(work_df["SMA_10"].iloc[-4]),
                 close=float(work_df["Закрытие"].iloc[-1]),
                 mid_bollinger=float(work_df["bb_middle"].iloc[-1]),
+                upper_bollinger=float(work_df["bb_upper"].iloc[-1]),
+                lower_bollinger=float(work_df["bb_lower"].iloc[-1]),
+                prev_bb_width = float(work_df["bb_width"].iloc[-2]),
+                prev_bb_width_2 = float(work_df["bb_width"].iloc[-3]),
                 volume=float(work_df["Объем"].iloc[-1]),
                 mean_volume=float(work_df["Объем"].iloc[-10:].mean()),
                 last_vwap=float(work_df["VWAP"].iloc[-1]),
@@ -281,6 +294,26 @@ class SborDannih:
         rsi_block = f"RSI{'↑' if rsi_up else ('↓' if rsi_down else '→')}={data.last_rsi:.1f}"
         # Пока нужно узнать что это за last_vwap потом буду брать в расчет
         posl_vwap = f"{'close>VWAP-лонг' if data.close>data.last_vwap else ('close<VWAP—шорт' if data.close<data.last_vwap else 'Разобраться с VWAP')}={data.last_vwap:.1f}"
+
+
+
+
+
+
+        # --- Боллинджер ---  Боллинджер на пробу
+        bb_pos = "выш_ср_болинджер" if data.close > data.mid_bollinger else "ниж_ср_болинджер"
+        # Сходимость/расходимость: сравниваем текущую ширину с предыдущими
+        bb_w = data.upper_bollinger - data.lower_bollinger
+        bb_w_prev = data.prev_bb_width
+        bb_w_prev2 = data.prev_bb_width_2
+        if bb_w < bb_w_prev < bb_w_prev2:
+            bb_txt = "BB⊃(сжатие)к пробою"  # полосы сходятся — готовность к пробою
+        elif bb_w > bb_w_prev > bb_w_prev2:
+            bb_txt = "BB⊂(расширение)тренд усилив"  # полосы расходятся — тренд усиливается
+        else:
+            bb_txt = "BB→(нейтрально)"
+        bb_block = f"{bb_txt};close{bb_pos};разн болиндж={bb_w:.2f}"
+
         # === Расчёт score ===
         ydelnii_ves = {'sma': 0.3, 'rsi_d': 0.2, 'macd_d': 0.2, 'vol': 0.3}   # , 'macd_s': 0.20
         score = 0.0
@@ -296,17 +329,17 @@ class SborDannih:
         if tf_name == "day":
             if sma_up:
                 is_buy = True
-                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
+                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}; {bb_block}"
             elif sma_down:
                 is_sell = True
-                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
+                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}; {bb_block}"
         elif tf_name == "hour":
             if sma_up and data.prev_rsi_3<data.last_rsi< 65:
                 is_buy = True
-                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
+                desc = f"SMA10↑; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}; {bb_block}"
             elif sma_down and  35<data.last_rsi<data.prev_rsi_3:    # rsi_down
                 is_sell = True
-                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}"
+                desc = f"SMA10↓; {rsi_block}; {macd_txt}; {vol_block}; {posl_vwap}; {bb_block}"
         return is_buy, is_sell, score, desc
 
     # ==================КОНЕЦ ФИЛЬТР СТРАТЕГИЙ (ОЦЕНКА ТАЙМФРЕЙМА)===============
