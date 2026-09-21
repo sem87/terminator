@@ -138,7 +138,7 @@ class BuySellAktiv:
             order_id = str(uuid.uuid4())
             # 4 сама покупка
             try:
-                self.services.orders.post_order(
+                order_response=self.services.orders.post_order(
                     figi=figi,
                     quantity=quantity,
                     direction=OrderDirection.ORDER_DIRECTION_BUY,
@@ -147,15 +147,19 @@ class BuySellAktiv:
                     order_id=order_id
                 )
                 trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН - {tiker}. Кол-во: {quantity}")
+
+                # ВАЖНО: Берем реальный ID из ответа брокера что бы не было ошибки 50005
+                actual_order_id = order_response.order_id
+                debug_log.info(f"!!!!!!!!!!!Присвоен order_id: {actual_order_id}")
                 # 5.=====НАЧАЛО ОПРОС СТАТУСА ОРДЕРА (вместо time.sleep(25)) =======
                 max_wait_time = 26  # максимальное время ожидания в секундах
                 poll_interval = 2  # интервал опроса в секундах
                 start_time = time.time()
                 is_filled = False
                 while time.time() - start_time < max_wait_time:
-                    order_state = self.client.orders.get_order_state(
+                    order_state = self.services.orders.get_order_state(
                         account_id=self.account_id,
-                        order_id=order_id)
+                        order_id=actual_order_id)
                     status = order_state.execution_report_status
                     # Ордер исполнен или частично исполнен
                     if status in (
@@ -172,8 +176,7 @@ class BuySellAktiv:
                     # Ждём перед следующей проверкой
                     time.sleep(poll_interval)
                 if not is_filled:
-                    system_log.warning(
-                        f"ОРДЕР НЕ ИСПОЛНЕН за {max_wait_time} сек - {tiker}. Проверьте статус вручную.")
+                    system_log.warning(f"ОРДЕР НЕ ИСПОЛНЕН за {max_wait_time} сек - {tiker}. Проверьте статус вручную.")
                     return
                 # 5.=====КОНЕЦ ОПРОС СТАТУСА ОРДЕРА (вместо time.sleep(25)) =======
             except RequestError as e:
@@ -224,7 +227,7 @@ class BuySellAktiv:
             # Стоп-лимит заявка (продажа при достижении take_profit_price)
             """КОНЕЦ РАСЧЕТ ПАРАМЕТРОВ ДЛЯ ЗАЯВОК"""
             """НАЧАЛО ТЕЙК-ПРОФИТ ЗАЯВКИ"""  # продажа при достижении take_profit_price
-            time.sleep(2)
+            time.sleep(1)
             self.services.stop_orders.post_stop_order(
                 figi=figi,
                 quantity=qty_lots,  # Это int (количество лотов)
@@ -237,7 +240,6 @@ class BuySellAktiv:
             debug_log.warning(f"ТЕЙК-ПРОФИТ выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
             """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
             """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
-            time.sleep(2)
             self.services.stop_orders.post_stop_order(
                 figi=figi,
                 quantity=qty_lots,  # Это int (количество лотов)
@@ -247,7 +249,7 @@ class BuySellAktiv:
                 account_id=self.account_id,
                 expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
                 stop_order_type=StopOrderType.STOP_ORDER_TYPE_STOP_LOSS)
-            debug_log.warning(f"СТОП-ЛОСС выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
+            debug_log.warning(f"СТОП-ЛОСС выставлен: {tiker} | Цена: {valid_sl_price:.4f} | Лотов: {qty_lots}")
             # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
             """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
         except Exception as e:
