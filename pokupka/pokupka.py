@@ -247,6 +247,7 @@ class BuySellAktiv:
         valid_tp_price = round(raw_tp_price / step) * step
         # 4. Конвертируем в Quotation для API
         tp_quotation = _float_to_quotation(valid_tp_price)
+        time.sleep(2)
         self.services.stop_orders.post_stop_order(
             figi=figi,
             quantity=qty_lots,  # Это int (количество лотов)
@@ -256,7 +257,7 @@ class BuySellAktiv:
             account_id=self.account_id,
             expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
             stop_order_type=StopOrderType.STOP_ORDER_TYPE_TAKE_PROFIT,)
-        debug_log.warning(f"✅ ТЕЙК-ПРОФИТ выставлен: {tiker} | Цена: {tp_quotation:.4f} | Лотов: {qty_lots}")
+        debug_log.warning(f"✅ ТЕЙК-ПРОФИТ выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
 
 
         # except RequestError as e:
@@ -305,69 +306,5 @@ class BuySellAktiv:
         #     system_log.error(f"Критическая ошибка в BuySellAktiv activ_pokupka для {tiker}: {e}")
 
         #             """КОНЕЦ РАСЧИТАЕМ И ВЫСТАВИМ СТОП-ЛОСС И ТЕЙК-ПРОФИТ"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    #
-    # def activ_pokupka(self, figi: str, tiker: str, existing_portfolio: dict | None = None):
-    #     """ПОКУПКА АКТИВА И ВЫСТАВЛЕНИЕ ТЕЙК-ПРОФИТА"""
-    #     # 1. Используем переданный портфель, чтобы не спамить API. Если нет - запрашиваем.
-    #     portfolio = existing_portfolio if existing_portfolio is not None else self.already_exist()
-    #
-    #     if tiker in portfolio:
-    #         debug_log.info(f"⚠️ {tiker} уже в портфеле, пропускаем покупку.")
-    #         return
-    #
-    #     # 2. Расчёт лотов
-    #     quantity = self.calculation_number_lots(figi=figi, tiker=tiker)
-    #     if quantity <= 0:
-    #         trade_log.info(f"НЕ КУПИЛИ {tiker}: количество лотов = {quantity}")
-    #         return
-    #
-    #     # 3. Выставление рыночного ордера
-    #     order_id = str(uuid.uuid4())
-    #     try:
-    #         self.services.orders.post_order(
-    #             figi=figi, quantity=quantity, direction=OrderDirection.ORDER_DIRECTION_BUY,
-    #             order_type=OrderType.ORDER_TYPE_MARKET, account_id=self.account_id, order_id=order_id
-    #         )
-    #         trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН: {tiker}, Кол-во лотов: {quantity}")
-    #
-    #         # 4. Опрос статуса ордера
-    #         max_wait_time, poll_interval, start_time = 25, 2, time.time()
-    #         is_filled = False
-    #
-    #         while time.time() - start_time < max_wait_time:
-    #             order_state = self.client.orders.get_order_state(account_id=self.account_id, order_id=order_id)
-    #             status = order_state.execution_report_status
-    #
-    #             if status in (OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL,
-    #                           OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_PARTIALLYFILL):
-    #                 is_filled = True
-    #                 break
-    #             elif status == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_REJECTED:
-    #                 system_log.error(
-    #                     f"ОРДЕР ОТКЛОНЁН: {tiker}. Причина: {getattr(order_state, 'message', 'Неизвестно')}")
-    #                 break
-    #
-    #             time.sleep(poll_interval)
-    #
-    #         if not is_filled:
-    #             system_log.warning(f"ОРДЕР НЕ ИСПОЛНЕН за {max_wait_time} сек: {tiker}. Тейк-профит не выставлен.")
-    #             return
 
 
