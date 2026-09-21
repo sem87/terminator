@@ -6,6 +6,7 @@ from t_tech.invest import InstrumentIdType, InstrumentIdType, OrderDirection, Or
 
 import time
 import uuid
+import math
 from decimal import ROUND_HALF_UP, Decimal
 
 load_dotenv("../terminator/.env.term")
@@ -21,7 +22,6 @@ def _float_to_quotation(value: float) -> Quotation:
     units = int(value)
     nano = int(round((value % 1) * 1_000_000_000))
     return Quotation(units=units, nano=nano)
-
 
 
 class BuySellAktiv:
@@ -44,7 +44,8 @@ class BuySellAktiv:
                 if position.quantity.units > 0 or position.quantity.nano > 0:
                     # quantity_lots — это объект Quotation. Конвертируем и округляем до целого
                     qty_lots = int(round(_quotation_to_float(position.quantity_lots)))
-                    avg_price = _quotation_to_float(position.average_position_price)   # почему не нужно мне разделять так ли мне нужно
+                    avg_price = _quotation_to_float(
+                        position.average_position_price)  # почему не нужно мне разделять так ли мне нужно
                     dict_already_exist[position.ticker] = {
                         "figi": position.figi,
                         "quantity_lots": qty_lots,
@@ -55,19 +56,12 @@ class BuySellAktiv:
                     #     "quantity_units": position.quantity.units,
                     #     "quantity_nano": position.quantity.nano
                     # }
-            trade_log.info(f"Уже в портфеле: {list(dict_already_exist.keys())}")
-            debug_log.info(f"Уже в портфеле: {list(dict_already_exist.keys())}")
+            # trade_log.info(f"Уже в портфеле: {list(dict_already_exist.keys())}")
+            # debug_log.info(f"Уже в портфеле: {list(dict_already_exist.keys())}")
             return dict_already_exist
         except Exception as e:
             system_log.error(f"BuySellAktiv в already_exist() ошибка в получении портфеля: {e}")
             return {}
-
-
-
-
-
-
-
 
     def calculation_number_lots(self, figi: str, tiker: str) -> int:
         """РАСЧЕТ КОЛИЧЕСТВА ЛОТОВ НА СУММУ self.summa_pokupki"""
@@ -117,8 +111,6 @@ class BuySellAktiv:
             system_log.error(f"{tiker} - BuySellAktiv calculation_number_lots() ошибка: {e}")
             return 0
 
-
-
     def opredelaem_schag(self, figi: str, tiker: str) -> float:
         """ОПРЕДЕЛЕНИЕ ШАГА ЦЕНЫ (min_price_increment) ДЛЯ КОНКРЕТНОГО АКТИВА"""
         try:
@@ -137,8 +129,6 @@ class BuySellAktiv:
             system_log.error(f"{tiker} - opredelaem_schag() ошибка: {e}")
             return 0.01  # Безопасный фоллбек
 
-
-
     def activ_pokupka(self, figi: str, tiker: str):
         """ПОКУПКА АКТИВА, РАССТОНОВКА СТОП-ЛОСА И ТЕЙК-ПРОФИТА"""
         try:
@@ -153,6 +143,7 @@ class BuySellAktiv:
                 return
             # 3. ГЕНЕРАЦИЯ УНИКАЛЬНОГО order_id ДЛЯ ИДЕМПОТЕНТНОСТИ
             order_id = str(uuid.uuid4())
+            # 4 сама покупка
             try:
                 self.services.orders.post_order(
                     figi=figi,
@@ -163,7 +154,6 @@ class BuySellAktiv:
                     order_id=order_id
                 )
                 trade_log.warning(f"ОРДЕР ВЫСТАВЛЕН - {tiker}. Кол-во: {quantity}")
-
                 # 5.=====НАЧАЛО ОПРОС СТАТУСА ОРДЕРА (вместо time.sleep(25)) =======
                 max_wait_time = 26  # максимальное время ожидания в секундах
                 poll_interval = 2  # интервал опроса в секундах
@@ -201,12 +191,12 @@ class BuySellAktiv:
         except Exception as e:
             system_log.info(f"{tiker} - BuySellAktiv  activ_pokupka() ошибка при покупки актива : Exception as e : {e}")
 
-        """ИНФОРМАЦИЯ О ПОЗИЦИИ НА СЧЕТЕ.ЗА СКОЛЬКО КУПИЛИ И ЛОТНОСТЬ"""
+        # стоп и тейк вынести в отдельные функции с указаниями отдельно размера
+        """==========ИНФОРМАЦИЯ О ПОЗИЦИИ НА СЧЕТЕ.ЗА СКОЛЬКО КУПИЛИ И ЛОТНОСТЬ=========="""
         # Получаем информацию о позициях на счёте
-        # !!! может пользоваться already_exist
         # 5. Выставление Тейк-Профита (только если покупка успешна)
         # Запрашиваем обновленный портфель, чтобы получить точную среднюю цену и кол-во лотов после сделки
-        time.sleep(2)   # убрать это время похоже нужно
+        time.sleep(2)  # убрать это время похоже нужно
         updated_portfolio = self.already_exist()
         pos_data = updated_portfolio.get(tiker)
         if not pos_data:
@@ -215,96 +205,55 @@ class BuySellAktiv:
         avg_price = pos_data["avg_price"]
         qty_lots = pos_data["quantity_lots"]
 
-        """НАЧАЛО ТЕЙК-ПРОФИТ ЗАЯВКИ"""  # продажа при достижении take_profit_price
+        """НАЧАЛО РАСЧЕТ ПАРАМЕТРОВ ДЛЯ ЗАЯВОК"""
         # !!! переделать значение тейк профит , брать его исходя из атр и р:р
-        # coeff_take_profit_price = Decimal(1.05)
-        # self.services.stop_orders.popost_stop_order
-        # cl.stop_orders.post_stop_order(
-        #     figi=figi,
-        #     quantity=quantity_lots_new,  # Количество лотов
-        #     price=decimal_to_quotation(
-        #         ((price_rub * coeff_take_profit_price) / schag).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * schag),
-        #     stop_price=decimal_to_quotation(
-        #         ((price_rub * coeff_take_profit_price) / schag).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * schag),
-        #     # Стоп-цена заявки за 1 инструмент
-        #     direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
-        #     account_id=accid,
-        #     expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
-        #     stop_order_type=StopOrderType.STOP_ORDER_TYPE_TAKE_PROFIT,
-        # )  # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
-        # # instrument_id = StopOrdersService
-        # debug_log.warning(f"ТЕЙК-ПРОФИТ-{tiker}->ЦЕН{round((price_rub * coeff_take_profit_price / schag) * schag, 3)}"
-        #                   f" В КОЛИЧЕСТВЕ {quantity_lots_new}")
-
         time.sleep(2)
         # 1. Получаем шаг цены через метод класса
         step = self.opredelaem_schag(figi=figi, tiker=tiker)
-        # 2. Рассчитываем целевую цену ТП (например, +5%)
-        coeff_tp = 1.05
-        raw_tp_price = avg_price * coeff_tp
+        # 2. Рассчитываем целевую цену тейк-профита (например, +5%)
+        coeff_take_profit = 1.01
+        coeff_stop_loss_price = 0.994  # СДЕЛАЕМ W/R 1:1 (0,34%)
+        raw_tp_price = avg_price * coeff_take_profit
+        raw_sl_price = avg_price * coeff_stop_loss_price
         # 3. МАГИЯ ОКРУГЛЕНИЯ до шага биржи
         # Пример: цена 52.867, шаг 0.01 -> round(5286.7) * 0.01 = 52.87
-        valid_tp_price = round(raw_tp_price / step) * step
+        # Для Take-Profit (цена ВЫШЕ) → округляем ВВЕРХ
+        valid_tp_price = math.ceil(raw_tp_price / step) * step
+        # Для Stop-Loss (цена НИЖЕ) → округляем ВНИЗ
+        valid_sl_price = math.floor(raw_sl_price / step) * step
         # 4. Конвертируем в Quotation для API
         tp_quotation = _float_to_quotation(valid_tp_price)
+        sl_quotation = _float_to_quotation(valid_sl_price)
+        # Стоп-лимит заявка (продажа при достижении take_profit_price)
+        """КОНЕЦ РАСЧЕТ ПАРАМЕТРОВ ДЛЯ ЗАЯВОК"""
+        """НАЧАЛО ТЕЙК-ПРОФИТ ЗАЯВКИ"""  # продажа при достижении take_profit_price
         time.sleep(2)
         self.services.stop_orders.post_stop_order(
             figi=figi,
             quantity=qty_lots,  # Это int (количество лотов)
-            price=tp_quotation,       # <-- ИСПРАВЛЕНО
+            price=tp_quotation,  # <-- ИСПРАВЛЕНО
             stop_price=tp_quotation,  # <-- ИСПРАВЛЕНО
             direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
             account_id=self.account_id,
             expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
-            stop_order_type=StopOrderType.STOP_ORDER_TYPE_TAKE_PROFIT,)
-        debug_log.warning(f"✅ ТЕЙК-ПРОФИТ выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
-
-
+            stop_order_type=StopOrderType.STOP_ORDER_TYPE_TAKE_PROFIT, )
+        debug_log.warning(f"ТЕЙК-ПРОФИТ выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
         # except RequestError as e:
         # system_log.error(f"{tiker} - RequestError при покупке: {e}")
-
         # except Exception as e:
         #     system_log.error(f"{tiker} - Критическая ошибка в activ_pokupka: {e}")
-
-
-
-
-        # """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
-        # """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
-        # # Стоп-лимит заявка (продажа при достижении take_profit_price)
-        # coeff_stop_loss_price = Decimal(0.9966)  # СДЕЛАЕМ W/R 1:1 (0,34%)
-        # cl.stop_orders.post_stop_order(
-        #     figi=figi,
-        #     quantity=quantity_lots_new,  # Количество лотов
-        #     price=decimal_to_quotation(
-        #         ((price_rub * coeff_stop_loss_price) / schag).quantize(
-        #             Decimal("1"), rounding=ROUND_HALF_UP
-        #         )
-        #         * schag
-        #     ),
-        #     stop_price=decimal_to_quotation(
-        #         ((price_rub * coeff_stop_loss_price) / schag).quantize(
-        #             Decimal("1"), rounding=ROUND_HALF_UP
-        #         )
-        #         * schag
-        #     ),
-        #     # Стоп-цена заявки за 1 инструмент/
-        #     direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
-        #     account_id=accid,
-        #     expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
-        #     stop_order_type=StopOrderType.STOP_ORDER_TYPE_STOP_LOSS,
-        # )  # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
-        # inform.info(
-        #     f"СТОП-ЛИМИТ-{tiker}->ЦЕНА {round((price_rub * coeff_stop_loss_price / schag) * schag, 3)}"
-        #     f" В КОЛИЧЕСТВЕ {quantity_lots_new}"
-        # )
-        # """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
-        #
-        #
-        #
-        # except Exception as e:
-        #     system_log.error(f"Критическая ошибка в BuySellAktiv activ_pokupka для {tiker}: {e}")
-
-        #             """КОНЕЦ РАСЧИТАЕМ И ВЫСТАВИМ СТОП-ЛОСС И ТЕЙК-ПРОФИТ"""
-
-
+        """КОНЕЦ ТЕЙК-ПРОФИТ ЗАЯВКИ"""
+        """НАЧАЛО СТОП-ЛОСС ЗАЯВКИ"""
+        time.sleep(2)
+        self.services.stop_orders.post_stop_order(
+            figi=figi,
+            quantity=qty_lots,  # Это int (количество лотов)
+            price=sl_quotation,  # <-- ИСПРАВЛЕНО
+            stop_price=sl_quotation,  # <-- ИСПРАВЛЕНО
+            direction=StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
+            account_id=self.account_id,
+            expiration_type=StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL,
+            stop_order_type=StopOrderType.STOP_ORDER_TYPE_STOP_LOSS)
+        debug_log.warning(f"СТОП-ЛОСС выставлен: {tiker} | Цена: {valid_tp_price:.4f} | Лотов: {qty_lots}")
+        # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
+        """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
