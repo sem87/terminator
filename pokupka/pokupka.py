@@ -254,3 +254,101 @@ class BuySellAktiv:
             """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
         except Exception as e:
             system_log.info(f"{tiker} - BuySellAktiv  activ_pokupka() ошибка при расстановке СТОП-ЛОСА И ТЕЙК-ПРОФИТА: Exception as e : {e}")
+
+
+
+    def price_active_stop_loss(self, figi: str, tiker: str) -> float | None:
+        """ПОЛУЧАЕМ ЦЕНУ ИСПОЛНЕНИЯ АКТИВНОЙ СТОП-ЗАЯВКИ (Stop-Loss)"""
+        try:
+            # Получаем список активных стоп-заявок
+            response = self.services.stop_orders.get_stop_orders(account_id=self.account_id)
+            # Ищем именно Stop-Loss на продажу
+            for stop in response.stop_orders:
+                if (stop.figi == figi and
+                        stop.direction == StopOrderDirection.STOP_ORDER_DIRECTION_SELL and
+                        stop.order_type == StopOrderType.STOP_ORDER_TYPE_STOP_LOSS):
+                    # Возвращаем цену как float
+                    return _quotation_to_float(stop.stop_price)
+            # Если стоп не найден
+            return None
+        except Exception as e:
+            system_log.error(f"{tiker} - price_active_stop_loss() ошибка получения цены СТОП-ЛОСА: {e}")
+            return None
+
+
+
+
+
+    def resetting_stop_los(self):
+        """ОПРЕДЕЛЯЕМ ГДЕ ПО ФАКТУ НАХОДИТСЯ ЦЕНА И В СООТВЕТСТВИИ ПЕРЕСТАВЛЯЕМ СТОП-ЛОС"""
+        try:
+            # Получаем актуальный словарь позиций из твоего же метода
+            portfolio_dict = self.already_exist()
+            if not portfolio_dict:
+                return
+
+            # Правила переноса стопа: (мин. мультипликатор, макс. мультипликатор, новый мультипликатор стопа, текст для лога)
+            STOP_LOSS_RULES = [
+                (1.0038, 1.0080, 1.0034, "0.34%"),
+                (1.0080, 1.0150, 1.0070, "0.70%"),
+                (1.0150, 1.0220, 1.0130, "1.30%"),
+                (1.0220, 1.0310, 1.0200, "2.00%"),
+                (1.0310, 1.0410, 1.0300, "3.00%"),
+                (1.0410, 1.0450, 1.0400, "4.00%"),
+            ]
+            for current_tiker, pos_data in portfolio_dict.items():
+                try:
+                    pos_figi = pos_data["figi"]
+                    qty_lots = pos_data["quantity_lots"]
+                    avg_price = pos_data["avg_price"]  # Уже float благодаря _quotation_to_float
+                    if qty_lots <= 0:
+                        continue
+                    # 1. Получение текущей цены
+                    last_prices_resp = self.services.market_data.get_last_prices(figi=[pos_figi])
+                    if not last_prices_resp.last_prices:
+                        continue
+
+                    current_price = _quotation_to_float(last_prices_resp.last_prices[0].price)
+
+                    # 2. Получение шага цены и текущего стопа
+                    schag = self.opredelaem_schag(figi=pos_figi, tiker=current_tiker)
+                    execution_price = self.price_active_stop_loss(figi=pos_figi, tiker=current_tiker)
+                    if execution_price is None:
+                        continue  # Если активный стоп не найден, пропускаем
+                    print(f"!!!!!!!!!!!!!!{current_tiker} купили по {avg_price} кол-во {qty_lots}  а -  сейчас цена {current_price}    цена стоп-лоса {execution_price}")
+
+
+
+
+                    # # 3. Проверка условий для переноса стопа
+                    # moved = False
+                    # for min_mult, max_mult, new_stop_mult, log_msg in STOP_LOSS_RULES:
+                    #     trigger_min = avg_price * min_mult
+                    #     trigger_max = avg_price * max_mult
+                    #
+                    #     # Условие: текущий стоп ниже порога И цена зашла в целевой диапазон
+                    #     if execution_price < trigger_min and trigger_min <= current_price < trigger_max:
+                    #         moving_stop_los(
+                    #             cl=self.services,
+                    #             figi=pos_figi,
+                    #             tiker=current_tiker,
+                    #             quantity=qty_lots,
+                    #             price_rub=avg_price,
+                    #             coeff_sl_price=new_stop_mult,  # Передаем мультипликатор
+                    #             schag=schag,
+                    #         )
+                    #         trade_log.info(f"{current_tiker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА ({log_msg})")
+                    #         moved = True
+                    #         break  # Стоп перенесен, переходим к следующей позиции
+                    #
+                    # # 4. Если ни одно условие не сработало
+                    # if not moved:
+                    #     per = round((execution_price - avg_price) * 100 / avg_price, 1) if avg_price != 0 else 0
+                    #     system_log.info(f"{current_tiker} - СТОП-ЛОС ОСТАЕТСЯ как было. ({per}%)")
+
+                except Exception as e:
+                    # Ловим ошибки по каждому тику отдельно, чтобы сбой на одном не ломал проверку всего портфеля
+                    system_log.error(f"{current_tiker} - ошибка в обработке позиции внутри resetting_stop_los: {e}")
+
+        except Exception as e:
+            system_log.error(f"resetting_stop_los() критическая ошибка: {e}", exc_info=True)
