@@ -115,6 +115,7 @@ if __name__ == "__main__":
                 # ПОКУПАЕМ АКТИВ
                 buy_sell_activ.activ_pokupka(tiker=ticker,figi=figi)
             # ПЕРЕСТАНОВКА СТОП-ЛОСА   ========   может изменить использование???
+            time.sleep(10)
             buy_sell_activ.resetting_stop_los()
 
 

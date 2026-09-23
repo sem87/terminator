@@ -12,23 +12,33 @@ from decimal import ROUND_HALF_UP, Decimal
 load_dotenv("../terminator/.env.term")
 
 
-def _quotation_to_float(quotation) -> float:
-    """Безопасная конвертация объекта Quotation в float"""
-    return float(quotation.units) + float(quotation.nano) / 1_000_000_000
+# def _quotation_to_float(quotation) -> float:
+#     """Безопасная конвертация объекта Quotation в float"""
+#     return float(quotation.units) + float(quotation.nano) / 1_000_000_000
+#
+#
+# def _float_to_quotation(value: float) -> Quotation:
+#     """Конвертация обычного float в объект Quotation для API Тинькофф"""
+#     units = int(value)
+#     nano = int(round((value % 1) * 1_000_000_000))
+#     return Quotation(units=units, nano=nano)
 
+def _quotation_to_float(quotation) -> Decimal:     # _quotation_to_decimal
+    return Decimal(quotation.units) + Decimal(quotation.nano) / Decimal('1_000_000_000')
 
-def _float_to_quotation(value: float) -> Quotation:
-    """Конвертация обычного float в объект Quotation для API Тинькофф"""
+def _float_to_quotation(value: Decimal) -> Quotation:     # _decimal_to_quotation
+    # value должно быть положительным для цен/количества
     units = int(value)
-    nano = int(round((value % 1) * 1_000_000_000))
+    nano = int((value - units) * Decimal('1_000_000_000'))
     return Quotation(units=units, nano=nano)
+
 
 
 class BuySellAktiv:
     def __init__(self, client, services, summa_pokupki: float = 6600.0) -> None:
         self.client = client
         self.services = services
-        self.summa_pokupki = float(summa_pokupki)
+        self.summa_pokupki = Decimal(str(summa_pokupki))
         self.account_id = os.getenv("AOCID")
         if not self.account_id:
             system_log.warning("BuySellAktiv __init__: Переменная окружения AOCID не найдена!")
@@ -78,14 +88,14 @@ class BuySellAktiv:
             price_per_lot = current_price * lot_size
             # 3. Получаем доступные деньги на счете
             positions = self.services.operations.get_positions(account_id=self.account_id)
-            available_money = 0.0
+            available_money = Decimal('0')
             for money in positions.money:
                 # Ищем рубли (учитываем разные варианты написания валюты)
-                if money.currency.lower() in ["rub", "rubl", "rur", ""]:
+                if money.currency.lower() == "RUB":
                     available_money = _quotation_to_float(money)
                     break
             # Если рубли не найдены, берем первый попавшийся баланс (фоллбек)
-            if available_money == 0.0 and positions.money:
+            if available_money == Decimal('0') and positions.money:
                 available_money = _quotation_to_float(positions.money[0])
                 system_log.warning(
                     f"{tiker}: Валюта RUB не найдена, используем баланс {positions.money[0].currency}: {available_money}")
@@ -138,7 +148,7 @@ class BuySellAktiv:
             order_id = str(uuid.uuid4())
             # 4 сама покупка
             try:
-                order_response=self.services.orders.post_order(
+                order_response = self.services.orders.post_order(
                     figi=figi,
                     quantity=quantity,
                     direction=OrderDirection.ORDER_DIRECTION_BUY,
@@ -253,9 +263,8 @@ class BuySellAktiv:
             # STOP_ORDER_TYPE_STOP_LIMIT    ИЛИ  STOP_ORDER_TYPE_STOP_LOSS
             """КОНЕЦ СТОП-ЛОСС ЗАЯВКИ"""
         except Exception as e:
-            system_log.info(f"{tiker} - BuySellAktiv  activ_pokupka() ошибка при расстановке СТОП-ЛОСА И ТЕЙК-ПРОФИТА: Exception as e : {e}")
-
-
+            system_log.info(
+                f"{tiker} - BuySellAktiv  activ_pokupka() ошибка при расстановке СТОП-ЛОСА И ТЕЙК-ПРОФИТА: Exception as e : {e}")
 
     def price_active_stop_loss(self, figi: str, tiker: str) -> float | None:
         """ПОЛУЧАЕМ ЦЕНУ ИСПОЛНЕНИЯ АКТИВНОЙ СТОП-ЗАЯВКИ (Stop-Loss)"""
@@ -274,9 +283,6 @@ class BuySellAktiv:
         except Exception as e:
             system_log.error(f"{tiker} - price_active_stop_loss() ошибка получения цены СТОП-ЛОСА: {e}")
             return None
-
-
-
 
     def moving_stop_los(self, figi: str, tiker: str, quantity: int, avg_price: float, coeff_sl_price: float,
                         schag: float):
@@ -320,10 +326,6 @@ class BuySellAktiv:
             system_log.error(f"{tiker} - moving_stop_los() критическая ошибка при передвигании стоп-лосса: {e}",
                              exc_info=True)
 
-
-
-
-
     def resetting_stop_los(self):
         """ОПРЕДЕЛЯЕМ ГДЕ ПО ФАКТУ НАХОДИТСЯ ЦЕНА И В СООТВЕТСТВИИ ПЕРЕСТАВЛЯЕМ СТОП-ЛОС"""
         try:
@@ -331,7 +333,6 @@ class BuySellAktiv:
             portfolio_dict = self.already_exist()
             if not portfolio_dict:
                 return
-
             # Правила переноса стопа: (мин. мультипликатор, макс. мультипликатор, новый мультипликатор стопа, текст для лога)
             STOP_LOSS_RULES = [
                 (1.0038, 1.0080, 1.0034, "0.34%"),
@@ -352,39 +353,31 @@ class BuySellAktiv:
                     last_prices_resp = self.services.market_data.get_last_prices(figi=[pos_figi])
                     if not last_prices_resp.last_prices:
                         continue
-
                     current_price = _quotation_to_float(last_prices_resp.last_prices[0].price)
-
                     # 2. Получение шага цены и текущего стопа
                     schag = self.opredelaem_schag(figi=pos_figi, tiker=current_tiker)
                     execution_price = self.price_active_stop_loss(figi=pos_figi, tiker=current_tiker)
                     if execution_price is None:
-                        continue  # Если активный стоп не найден, пропускаем
-                    print(f"!!!!!!!!!!!!!!{current_tiker} купили по {avg_price} кол-во {qty_lots}  а -  сейчас цена {current_price}    цена стоп-лоса {execution_price}")
-
+                        # continue  # Если активный стоп не найден, ставим стоп лос какой должен быть
+                        system_log.error(
+                            f" {current_tiker} BuySellAktiv resetting_stop_los - не был поставлен стоп-лосс ставим")
+                        system_log.error(
+                            f" {current_tiker} BuySellAktiv resetting_stop_los - ОБЯЗАТЕЛЬНО ПОДУМАЙ НУЖНО ЛИ ВЫСТАВЛЯТЬ СТОП-ЛОСС")
+                        continue
+                    # print(f"!!!!!!!!!!!!!!{current_tiker} купили по {avg_price} кол-во {qty_lots}  а -  сейчас цена {current_price}    цена стоп-лоса {execution_price}")
                     # 3. Проверка условий для переноса стопа
                     moved = False
                     for min_mult, max_mult, new_stop_mult, log_msg in STOP_LOSS_RULES:
-                        trigger_min = avg_price * min_mult
-                        trigger_max = avg_price * max_mult
-
+                        trigger_min = avg_price * Decimal(str(min_mult))
+                        trigger_max = avg_price * Decimal(str(max_mult))
                         # Условие: текущий стоп ниже порога И цена зашла в целевой диапазон
                         if execution_price < trigger_min and trigger_min <= current_price < trigger_max:
-                            # moving_stop_los(
-                            #     cl=self.services,
-                            #     figi=pos_figi,
-                            #     tiker=current_tiker,
-                            #     quantity=qty_lots,
-                            #     price_rub=avg_price,
-                            #     coeff_sl_price=new_stop_mult,  # Передаем мультипликатор
-                            #     schag=schag,
-                            # )
                             self.moving_stop_los(
                                 figi=pos_figi,
                                 tiker=current_tiker,
                                 quantity=qty_lots,
                                 avg_price=avg_price,  # Было price_rub=avg_price
-                                coeff_sl_price=new_stop_mult,  # Передаем float (например, 1.0034)
+                                coeff_sl_price=Decimal(str(new_stop_mult)),  # Передаем float (например, 1.0034)
                                 schag=schag,
                             )
                             trade_log.info(f"{current_tiker} - ПЕРЕДВИНУЛ СТОП-ЛОС НА ({log_msg})")
@@ -394,11 +387,9 @@ class BuySellAktiv:
                     # 4. Если ни одно условие не сработало
                     if not moved:
                         per = round((execution_price - avg_price) * 100 / avg_price, 1) if avg_price != 0 else 0
-                        system_log.info(f"{current_tiker} - СТОП-ЛОС ОСТАЕТСЯ как было. ({per}%)")
-
+                        trade_log.info(f"{current_tiker} - СТОП-ЛОС ОСТАЕТСЯ как было. ({per}%)")
                 except Exception as e:
                     # Ловим ошибки по каждому тику отдельно, чтобы сбой на одном не ломал проверку всего портфеля
                     system_log.error(f"{current_tiker} - ошибка в обработке позиции внутри resetting_stop_los: {e}")
-
         except Exception as e:
             system_log.error(f"resetting_stop_los() критическая ошибка: {e}", exc_info=True)
