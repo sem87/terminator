@@ -102,7 +102,7 @@ if __name__ == "__main__":
             # print(f"=========portfolio========= : {portfolio}")
             # ***ПОКУПКА***
             # for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog   ЭТО НЕ ВО ВРЕМЯ ТРЕНИРОВКИ
-            sale_i = {"EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9"}   # "EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9"
+            sale_i = {"EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9","NVTK": "BBG00475KKY8"}   # "EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9"
             for ticker, figi in sale_i.items():
                 # Покупаем все тикеры какие есть на покупку
                 # figi = data_activ.get('figi')   # НУЖНО ЛИ ВЕДЬ ЕСТЬ УЖЕ АКТУАЛЬНЫЙ JSON FILE

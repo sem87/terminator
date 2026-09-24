@@ -6,8 +6,8 @@ from t_tech.invest import InstrumentIdType, OrderDirection, OrderType, OrderExec
 
 import time
 import uuid
-import math
-from decimal import ROUND_HALF_UP, Decimal
+# import math
+from decimal import Decimal, ROUND_CEILING, ROUND_FLOOR,ROUND_HALF_UP
 
 load_dotenv("../terminator/.env.term")
 
@@ -221,16 +221,23 @@ class BuySellAktiv:
             # 1. Получаем шаг цены через метод класса
             step = self.opredelaem_schag(figi=figi, tiker=tiker)
             # 2. Рассчитываем целевую цену тейк-профита (например, +5%)
-            coeff_take_profit = 1.01
-            coeff_stop_loss_price = 0.994  # СДЕЛАЕМ W/R 1:1 (0,34%)
+            coeff_take_profit = Decimal('1.01')
+            coeff_stop_loss_price = Decimal('0.994')
+            # coeff_take_profit = 1.01
+            # coeff_stop_loss_price = 0.994  # СДЕЛАЕМ W/R 1:1 (0,34%)
             raw_tp_price = avg_price * coeff_take_profit
             raw_sl_price = avg_price * coeff_stop_loss_price
             # 3. МАГИЯ ОКРУГЛЕНИЯ до шага биржи
             # Пример: цена 52.867, шаг 0.01 -> round(5286.7) * 0.01 = 52.87
             # Для Take-Profit (цена ВЫШЕ) → округляем ВВЕРХ
-            valid_tp_price = math.ceil(raw_tp_price / step) * step
+            # valid_tp_price = math.ceil(raw_tp_price / step) * step
+            valid_tp_price = (raw_tp_price / step).to_integral_value(rounding=ROUND_CEILING) * step
             # Для Stop-Loss (цена НИЖЕ) → округляем ВНИЗ
-            valid_sl_price = math.floor(raw_sl_price / step) * step
+            # valid_sl_price = math.floor(raw_sl_price / step) * step
+            # Округление ВНИЗ для Stop-Loss
+            valid_sl_price = (raw_sl_price / step).to_integral_value(rounding=ROUND_FLOOR) * step
+
+
             # 4. Конвертируем в Quotation для API
             tp_quotation = _float_to_quotation(valid_tp_price)
             sl_quotation = _float_to_quotation(valid_sl_price)
@@ -266,7 +273,8 @@ class BuySellAktiv:
             system_log.info(
                 f"{tiker} - BuySellAktiv  activ_pokupka() ошибка при расстановке СТОП-ЛОСА И ТЕЙК-ПРОФИТА: Exception as e : {e}")
 
-    def price_active_stop_loss(self, figi: str, tiker: str) -> float | None:
+
+    def price_active_stop_loss(self, figi: str, tiker: str) -> Decimal | None:  # <-- ИСПРАВЛЕНО
         """ПОЛУЧАЕМ ЦЕНУ ИСПОЛНЕНИЯ АКТИВНОЙ СТОП-ЗАЯВКИ (Stop-Loss)"""
         try:
             # Получаем список активных стоп-заявок
@@ -284,8 +292,9 @@ class BuySellAktiv:
             system_log.error(f"{tiker} - price_active_stop_loss() ошибка получения цены СТОП-ЛОСА: {e}")
             return None
 
-    def moving_stop_los(self, figi: str, tiker: str, quantity: int, avg_price: float, coeff_sl_price: float,
-                        schag: float):
+    # def moving_stop_los(self, figi: str, tiker: str, quantity: int, avg_price: float, coeff_sl_price: float,
+    #                     schag: float):
+    def moving_stop_los(self, figi: str, tiker: str, quantity: int, avg_price: Decimal, coeff_sl_price: Decimal,schag: Decimal):
         """ОТМЕНА АКТИВНОГО СТОП-ЛОССА И ПЕРЕДВИГАНИЕ ЕГО НА НОВЫЙ УРОВЕНЬ"""
         try:
             # 1. ПОИСК И ОТМЕНА СТАРОГО СТОП-ЛОССА
@@ -307,7 +316,8 @@ class BuySellAktiv:
             raw_sl_price = avg_price * coeff_sl_price
             # Округляем ВНИЗ до ближайшего шага цены (безопаснее для стоп-лосса, чтобы не завысить цену срабатывания)
             # math.floor уже импортирован в твоем файле
-            valid_sl_price = math.floor(raw_sl_price / schag) * schag
+            # valid_sl_price = math.floor(raw_sl_price / schag) * schag
+            valid_sl_price = (raw_sl_price / schag).to_integral_value(rounding=ROUND_FLOOR) * schag
             # Конвертируем float в Quotation для API Тинькофф
             sl_quotation = _float_to_quotation(valid_sl_price)
             # 3. ВЫСТАВЛЕНИЕ НОВОГО СТОП-ЛОССА
