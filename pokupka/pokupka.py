@@ -104,7 +104,7 @@ class BuySellAktiv:
                 if money.currency.lower() == "RUB":
                     available_money = _quotation_to_float(money)
                     break
-            # Если рубли не найдены, берем первый попавшийся баланс (фоллбек)
+            # Если рубли не найдены, берем первый попавшийся баланс (фоллбек) !!!!!почему это? зачем это нужно????
             if available_money == Decimal('0') and positions.money:
                 available_money = _quotation_to_float(positions.money[0])
                 system_log.warning(
