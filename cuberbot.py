@@ -106,7 +106,7 @@ if __name__ == "__main__":
             for ticker, figi in sale_i.items():
                 # Покупаем все тикеры какие есть на покупку
                 # figi = data_activ.get('figi')   # НУЖНО ЛИ ВЕДЬ ЕСТЬ УЖЕ АКТУАЛЬНЫЙ JSON FILE
-                trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+                trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!!")
                 debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
                 # Проверка: не покупаем ли мы то, что уже есть
                 if ticker in portfolio:
