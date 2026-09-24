@@ -384,7 +384,7 @@ class BuySellAktiv:
                     # print(f"!!!!!!!!!!!!!!{current_tiker} купили по {avg_price} кол-во {qty_lots}  а -  сейчас цена {current_price}    цена стоп-лоса {execution_price}")
                     # 3. Проверка условий для переноса стопа
                     moved = False
-                    for min_mult, max_mult, new_stop_mult, log_msg in STOP_LOSS_RULES:
+                    for min_mult, max_mult, new_stop_mult, log_msg in self.STOP_LOSS_RULES:
                         trigger_min = avg_price * Decimal(str(min_mult))
                         trigger_max = avg_price * Decimal(str(max_mult))
                         # Условие: текущий стоп ниже порога И цена зашла в целевой диапазон
