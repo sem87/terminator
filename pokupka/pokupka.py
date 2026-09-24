@@ -42,6 +42,16 @@ class BuySellAktiv:
         self.account_id = os.getenv("AOCID")
         if not self.account_id:
             system_log.warning("BuySellAktiv __init__: Переменная окружения AOCID не найдена!")
+        self.IGNORE_STOP_LOSS_TICKERS = {"RUB000UTSTOM", "RUB", "USD000UTSTOM", "EUR000UTSTOM"}
+        # Правила переноса стопа: (мин. мультипликатор, макс. мультипликатор, новый мультипликатор стопа, текст для лога)
+        self.STOP_LOSS_RULES = [
+            (1.0038, 1.0080, 1.0034, "0.34%"),
+            (1.0080, 1.0150, 1.0070, "0.70%"),
+            (1.0150, 1.0220, 1.0130, "1.30%"),
+            (1.0220, 1.0310, 1.0200, "2.00%"),
+            (1.0310, 1.0410, 1.0300, "3.00%"),
+            (1.0410, 1.0450, 1.0400, "4.00%"),
+        ]
 
     def already_exist(self) -> dict:
         """ПОЛУЧАЕМ СЛОВАРЬ УЖЕ КУПЛЕННЫХ АКТИВОВ (ПОЗИЦИЙ В ПОРТФЕЛЕ)"""
@@ -114,7 +124,7 @@ class BuySellAktiv:
             system_log.error(f"{tiker} - BuySellAktiv calculation_number_lots() ошибка: {e}")
             return 0
 
-    def opredelaem_schag(self, figi: str, tiker: str) -> float:
+    def opredelaem_schag(self, figi: str, tiker: str) -> Decimal:
         """ОПРЕДЕЛЕНИЕ ШАГА ЦЕНЫ (min_price_increment) ДЛЯ КОНКРЕТНОГО АКТИВА"""
         try:
             instrument = self.services.instruments.get_instrument_by(
@@ -125,12 +135,12 @@ class BuySellAktiv:
             step = _quotation_to_float(instrument.min_price_increment)
             if step <= 0:
                 system_log.warning(f"{tiker}: Шаг цены равен 0, используем фоллбек 0.01")
-                return 0.01
+                return Decimal('0.01')
             debug_log.info(f"{tiker}: Шаг цены (min_price_increment) = {step}")
             return step
         except Exception as e:
             system_log.error(f"{tiker} - opredelaem_schag() ошибка: {e}")
-            return 0.01  # Безопасный фоллбек
+            return Decimal('0.01')  # Безопасный фоллбек
 
     def activ_pokupka(self, figi: str, tiker: str):
         """ПОКУПКА АКТИВА, РАССТОНОВКА СТОП-ЛОСА И ТЕЙК-ПРОФИТА"""
@@ -343,17 +353,14 @@ class BuySellAktiv:
             portfolio_dict = self.already_exist()
             if not portfolio_dict:
                 return
-            # Правила переноса стопа: (мин. мультипликатор, макс. мультипликатор, новый мультипликатор стопа, текст для лога)
-            STOP_LOSS_RULES = [
-                (1.0038, 1.0080, 1.0034, "0.34%"),
-                (1.0080, 1.0150, 1.0070, "0.70%"),
-                (1.0150, 1.0220, 1.0130, "1.30%"),
-                (1.0220, 1.0310, 1.0200, "2.00%"),
-                (1.0310, 1.0410, 1.0300, "3.00%"),
-                (1.0410, 1.0450, 1.0400, "4.00%"),
-            ]
+
             for current_tiker, pos_data in portfolio_dict.items():
                 try:
+                    # === НОВОЕ: Исключение для фондов ликвидности и валют ===
+                    if current_tiker in self.IGNORE_STOP_LOSS_TICKERS:
+                        debug_log.info(f"{current_tiker} - Пропускаем управление стоп-лоссом (исключенный актив).")
+                        continue
+                    # =========================================================
                     pos_figi = pos_data["figi"]
                     qty_lots = pos_data["quantity_lots"]
                     avg_price = pos_data["avg_price"]  # Уже float благодаря _quotation_to_float
