@@ -93,30 +93,30 @@ if __name__ == "__main__":
 
 
 
-            # ===== "EUTR": "TCS00A1002V2"   для примера ============
-            # ===========НАЧАЛО ПОКУПКА ПРОДАЖА======================нужно использовать правильно!!!!!много лишнего
-            # 1. Создаем экземпляр ОДИН РАЗ перед циклами
-            buy_sell_activ = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services,summa_pokupki=60.0)  # 6600
-            # 2. Получаем текущий портфель ОДИН РАЗ, чтобы не спамить API в цикле
-            portfolio = buy_sell_activ.already_exist()   # что он возвращает??? почему не словарь
-            # print(f"=========portfolio========= : {portfolio}")
-            # ***ПОКУПКА***
-            # for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog   ЭТО НЕ ВО ВРЕМЯ ТРЕНИРОВКИ
-            sale_i = {"EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9","NVTK": "BBG00475KKY8"}   # "EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9"
-            for ticker, figi in sale_i.items():
-                # Покупаем все тикеры какие есть на покупку
-                # figi = data_activ.get('figi')   # НУЖНО ЛИ ВЕДЬ ЕСТЬ УЖЕ АКТУАЛЬНЫЙ JSON FILE
-                trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!!")
-                debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
-                # Проверка: не покупаем ли мы то, что уже есть
-                if ticker in portfolio:
-                    debug_log.info(f"⚠️ {ticker} уже в портфеле, пропускаем.")
-                    continue
-                # ПОКУПАЕМ АКТИВ
-                buy_sell_activ.activ_pokupka(tiker=ticker,figi=figi)
-            # ПЕРЕСТАНОВКА СТОП-ЛОСА   ========   может изменить использование???
-            time.sleep(10)
-            buy_sell_activ.resetting_stop_los()
+            # # ===== "EUTR": "TCS00A1002V2"   для примера ============
+            # # ===========НАЧАЛО ПОКУПКА ПРОДАЖА======================нужно использовать правильно!!!!!много лишнего
+            # # 1. Создаем экземпляр ОДИН РАЗ перед циклами
+            # buy_sell_activ = BuySellAktiv(client=sbor_dannich._client,services=sbor_dannich._services,summa_pokupki=60.0)  # 6600
+            # # 2. Получаем текущий портфель ОДИН РАЗ, чтобы не спамить API в цикле
+            # portfolio = buy_sell_activ.already_exist()   # что он возвращает??? почему не словарь
+            # # print(f"=========portfolio========= : {portfolio}")
+            # # ***ПОКУПКА***
+            # # for ticker, data_activ in sbor_dannich.sale_itog_d_h.items():   # buy_itog   ЭТО НЕ ВО ВРЕМЯ ТРЕНИРОВКИ
+            # sale_i = {"EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9","NVTK": "BBG00475KKY8"}   # "EUTR": "TCS00A1002V2", "VTBR": "BBG004730ZJ9"
+            # for ticker, figi in sale_i.items():
+            #     # Покупаем все тикеры какие есть на покупку
+            #     # figi = data_activ.get('figi')   # НУЖНО ЛИ ВЕДЬ ЕСТЬ УЖЕ АКТУАЛЬНЫЙ JSON FILE
+            #     trade_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!!")
+            #     debug_log.info(f"!!!!!!ПОКУПКА прям на самом деле: {ticker}!!!!!!!!")
+            #     # Проверка: не покупаем ли мы то, что уже есть
+            #     if ticker in portfolio:
+            #         debug_log.info(f"⚠️ {ticker} уже в портфеле, пропускаем.")
+            #         continue
+            #     # ПОКУПАЕМ АКТИВ
+            #     buy_sell_activ.activ_pokupka(tiker=ticker,figi=figi)
+            # # ПЕРЕСТАНОВКА СТОП-ЛОСА   ========   может изменить использование???
+            # time.sleep(10)
+            # buy_sell_activ.resetting_stop_los()
 
 
 
